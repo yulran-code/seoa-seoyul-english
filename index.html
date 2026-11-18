@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>코난 & 도라에몽 데일리 영어</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #1e293b;
+      --muted: #64748b;
+      --highlight: #fef08a;
+    }
+    * { box-sizing: border-box; font-family: 'Pretendard', -apple-system, sans-serif; }
+    body { margin: 0; background: var(--bg); color: var(--text); padding-bottom: 60px; }
+    
+    /* 상단 학습자 전환 바 */
+    .top-bar {
+      background: #1e293b; color: white; padding: 12px 16px;
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
+    }
+    .profile-btns { display: flex; gap: 8px; }
+    .profile-btn {
+      border: 1px solid #475569; background: transparent; color: #cbd5e1;
+      padding: 6px 16px; border-radius: 20px; cursor: pointer; font-weight: 700; font-size: 14px;
+    }
+    .profile-btn.active { background: #3b82f6; color: white; border-color: #3b82f6; }
+    .sync-badge { font-size: 12px; color: #94a3b8; }
+
+    .container { max-width: 760px; margin: 16px auto; padding: 0 16px; }
+    .card {
+      background: var(--card); border-radius: 16px; padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 16px;
+    }
+
+    /* 에피소드 & 누적 현황 */
+    .header-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+    select {
+      padding: 10px 14px; border-radius: 10px; border: 1px solid #cbd5e1;
+      font-size: 15px; font-weight: 600; flex: 1; min-width: 200px;
+    }
+    .streak-box {
+      background: #eff6ff; color: #1d4ed8; padding: 8px 14px;
+      border-radius: 10px; font-weight: 700; font-size: 14px;
+    }
+
+    /* 완료 배지 */
+    .status-bar {
+      display: flex; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #f1f5f9;
+    }
+    .badge {
+      flex: 1; text-align: center; padding: 6px; border-radius: 8px;
+      font-size: 13px; font-weight: 600; background: #f1f5f9; color: #94a3b8;
+    }
+    .badge.done { background: #dcfce7; color: #15803d; }
+
+    /* 탭 스타일 */
+    .tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+    .tab-btn {
+      flex: 1; padding: 10px; border: none; border-radius: 10px;
+      background: #e2e8f0; color: #475569; font-weight: 700; cursor: pointer; font-size: 14px;
+    }
+    .tab-btn.active { background: var(--primary); color: white; }
+
+    /* 에피소드 대표 이미지 */
+    .story-banner {
+      width: 100%; max-height: 240px; object-fit: cover; border-radius: 12px;
+      margin-bottom: 16px; display: none; border: 1px solid #e2e8f0;
+    }
+
+    /* 오디오 컨트롤 */
+    .player-bar {
+      display: flex; flex-direction: column; gap: 10px;
+      background: #f1f5f9; padding: 12px; border-radius: 12px; margin-bottom: 16px;
+    }
+    .player-row {
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
+    }
+    .ctrl-group { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .btn {
+      border: none; padding: 8px 14px; border-radius: 8px; font-weight: 700;
+      cursor: pointer; font-size: 14px; background: white; color: var(--text);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .btn.primary { background: var(--primary); color: white; }
+    .btn.danger { background: #ef4444; color: white; }
+    .btn.speed.active { background: #0f172a; color: white; }
+    .voice-select {
+      padding: 6px 10px; font-size: 13px; border-radius: 8px; border: 1px solid #cbd5e1;
+      background: white; color: #334155; max-width: 240px; min-width: 160px; flex: none;
+    }
+
+    /* 문장 카드형 UI (그림 + 영어 + 한글 힌트) */
+    .story-list { display: flex; flex-direction: column; gap: 10px; }
+    .sentence-card {
+      display: flex; align-items: center; gap: 14px;
+      padding: 12px 14px; border-radius: 12px; border: 1px solid #e2e8f0;
+      background: #ffffff; cursor: pointer; transition: all 0.2s;
+    }
+    .sentence-card:hover { background: #f8fafc; }
+    .story-list.playing .sentence-card { opacity: 0.35; }
+    .story-list.playing .sentence-card.active {
+      opacity: 1; background: var(--highlight); border-color: #eab308; transform: scale(1.01);
+    }
+    .scene-icon {
+      font-size: 32px; min-width: 54px; height: 54px;
+      background: #f1f5f9; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .sent-body { flex: 1; }
+    .sent-en { font-size: 20px; font-weight: 600; line-height: 1.5; }
+    .sent-ko { font-size: 14px; color: #64748b; margin-top: 4px; }
+    .sent-ko.hidden { display: none; }
+
+    /* 고유명사(캐릭터 이름) 전용 색상 */
+    .char-name {
+      color: #ea580c;
+      background: #fff7ed;
+      padding: 1px 6px;
+      border-radius: 6px;
+      font-weight: 800;
+      border: 1px solid #fed7aa;
+    }
+
+    /* 일반 단어 밑줄 & 툴팁 */
+    .vocab {
+      border-bottom: 2px dashed #3b82f6; color: #1d4ed8; font-weight: 700; cursor: pointer;
+    }
+    #tooltip {
+      position: fixed; display: none; background: #0f172a; color: white;
+      padding: 10px 14px; border-radius: 10px; font-size: 14px; max-width: 260px;
+      z-index: 1000; box-shadow: 0 4px 14px rgba(0,0,0,0.25); line-height: 1.4;
+    }
+
+    /* 핵심 구문 */
+    .phrase-item {
+      background: #f8fafc; border-left: 4px solid #3b82f6;
+      padding: 10px 14px; border-radius: 8px; margin-bottom: 8px;
+    }
+    .hidden-meaning { filter: blur(5px); user-select: none; }
+
+    /* 퀴즈 & 스피킹 */
+    .quiz-box { margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid #e2e8f0; }
+    .opt-btn {
+      display: block; width: 100%; text-align: left; padding: 10px 14px;
+      margin-top: 6px; border: 1px solid #cbd5e1; border-radius: 8px;
+      background: white; cursor: pointer; font-size: 15px;
+    }
+    .opt-btn.correct { background: #dcfce7; border-color: #16a34a; font-weight: 700; }
+    .opt-btn.wrong { background: #fee2e2; border-color: #dc2626; }
+
+    .speak-card {
+      border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; margin-bottom: 12px;
+    }
+    .speak-en { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+    .speak-ko { font-size: 14px; color: var(--muted); margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="profile-btns">
+    <button class="profile-btn active" onclick="switchUser('kid3', this)">👧 서아</button>
+    <button class="profile-btn" onclick="switchUser('kid6', this)">👦 서율</button>
+    <button class="profile-btn" onclick="switchUser('mom', this)">👩 엄마</button>
+  </div>
+  <div class="sync-badge" id="syncStatus">☁️ 구글 시트 연결 대기중</div>
+</div>
+
+<div class="container">
+  <div class="card">
+    <div class="header-row">
+      <select id="storySelect" onchange="selectStory(this.value)"></select>
+      <div class="streak-box" id="streakDisplay">🏆 완료한 날: 0일</div>
+    </div>
+    <div class="status-bar">
+      <div class="badge" id="badge-read">📖 스토리 읽기</div>
+      <div class="badge" id="badge-quiz">✅ 퀴즈 통과</div>
+      <div class="badge" id="badge-speak">🎙️ 1인칭 스피킹</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchMode('read', this)">1. 스토리 읽기</button>
+    <button class="tab-btn" onclick="switchMode('quiz', this)">2. 퀴즈 풀기</button>
+    <button class="tab-btn" onclick="switchMode('speak', this)">3. 1인칭 스피킹</button>
+  </div>
+
+  <!-- 모드 1: 스토리 읽기 -->
+  <div id="mode-read" class="card">
+    <img id="storyImage" class="story-banner" alt="에피소드 장면" />
+
+    <div class="player-bar">
+      <div class="player-row">
+        <div class="ctrl-group">
+          <button class="btn primary" onclick="playAll()">▶ 전체 듣기</button>
+          <button class="btn" onclick="pauseSpeech()">⏸ 일시정지</button>
+          <button class="btn danger" onclick="stopAll()">⏹ 완전 정지</button>
+        </div>
+        <div class="ctrl-group">
+          <button class="btn speed" onclick="setSpeed(0.75, this)">0.75x</button>
+          <button class="btn speed active" onclick="setSpeed(1.0, this)">1.0x</button>
+          <button class="btn speed" onclick="setSpeed(1.2, this)">1.2x</button>
+        </div>
+      </div>
+      <div class="player-row">
+        <div class="ctrl-group">
+          <span style="font-size:13px; font-weight:700; color:#475569;">🎙️ 성우:</span>
+          <select id="voiceSelect" class="voice-select" onchange="changeVoice(this.value)"></select>
+        </div>
+        <button class="btn" onclick="toggleKoHint()">🇰🇷 한글 뜻 보기/숨기기</button>
+      </div>
+    </div>
+
+    <div id="storyContent" class="story-list"></div>
+
+    <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <strong>📌 오늘의 핵심 표현</strong>
+        <button class="btn" onclick="togglePhrases()">👀 뜻 가리기/보기</button>
+      </div>
+      <div id="phraseList"></div>
+    </div>
+
+    <button class="btn primary" style="width:100%; margin-top:16px; padding:12px;" onclick="markComplete('read')">
+      📖 오늘 스토리 읽기 완료 체크하기
+    </button>
+  </div>
+
+  <!-- 모드 2: 퀴즈 -->
+  <div id="mode-quiz" class="card" style="display:none;">
+    <div id="quizList"></div>
+    <button class="btn primary" style="width:100%; padding:12px;" onclick="markComplete('quiz')">
+      ✅ 퀴즈 완료 기록 저장하기
+    </button>
+  </div>
+
+  <!-- 모드 3: 1인칭 스피킹 -->
+  <div id="mode-speak" class="card" style="display:none;">
+    <p style="font-size:14px; color:#475569; margin-top:0;">
+      주인공이 되어 1인칭으로 말해보세요! 원어민 음성을 듣고 내 목소리를 녹음해 비교해 보세요.
+    </p>
+    <div id="speakList"></div>
+    <button class="btn primary" style="width:100%; margin-top:10px; padding:12px;" onclick="markComplete('speak')">
+      🎙️ 1인칭 스피킹 완료 체크하기
+    </button>
+  </div>
+</div>
+
+<div id="tooltip"></div>
+
+<script>
+  // ★ 2단계에서 복사한 Google Apps Script 웹 앱 URL을 아래에 붙여넣으세요 ★
+  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwKe4yHYoSQ8rbNZ0rsqD20z2BPjSXXbhZTOS5LOv6Rdb2XfoHl-cB9ge-v0xc7PlOcig/exec";
+
+  const CHARACTER_NAMES = [
+    "Conan", "Ran", "Kogoro", "Ai", "Agasa", "Sonoko", "Heiji", "Kaito", "Kid", "Genta", "Ayumi", "Mitsuhiko",
+    "Doraemon", "Jingu", "Iseul", "Tung", "Bisil", "Youngmin"
+  ];
+
+  // 원어민 TTS 발음 교정 사전 (화면 표기는 유지하고 읽을 때만 자연스럽게 발음)
+  const PRONUNCIATION_MAP = {
+    "Iseul": "Ee-seul",
+    "Jingu": "Jin-goo",
+    "Bisil": "Bee-sil",
+    "Youngmin": "Young-min",
+    "Agasa": "Ah-gah-sah",
+    "Kogoro": "Ko-go-ro"
+  };
+
+  function getPronunciationText(text) {
+    let spoken = text;
+    Object.keys(PRONUNCIATION_MAP).forEach(key => {
+      const regex = new RegExp(`\\b${key}\\b`, 'g');
+      spoken = spoken.replace(regex, PRONUNCIATION_MAP[key]);
+    });
+    return spoken;
+  }
+
+  const FALLBACK_STORIES = [
+    {
+      date: "2026-11-18",
+      title: "[코난] 사라진 딸기 케이크의 비밀",
+      series: "Conan",
+      imageUrl: "",
+      levels: {
+        lv1: {
+          sentences: [
+            { en: "Conan is home.", ko: "코난이 집에 있어요.", icon: "🏠" },
+            { en: "Ran makes a cake.", ko: "란 누나가 케이크를 만들어요.", icon: "🍰" },
+            { en: "Oh no! No cake!", ko: "어라! 케이크가 없어요!", icon: "😱" },
+            { en: "Look at Kogoro!", ko: "모리 아저씨를 보세요!", icon: "👀" },
+            { en: "White cream is there!", ko: "입가에 하얀 크림이 묻어 있어요!", icon: "🍦" }
+          ],
+          vocab: {
+            "home": "the place where you live / 집",
+            "cake": "sweet baked food / 케이크",
+            "white": "the color of snow / 하얀색"
+          },
+          phrases: [
+            { en: "Oh no!", ko: "어머나! 이런!" },
+            { en: "Look at ~", ko: "~을(를) 봐!" }
+          ],
+          quiz: [
+            { q: "란 누나가 만든 것은 무엇인가요?", opts: ["🍕 Pizza", "🍰 Cake"], ans: 1 },
+            { q: "누가 케이크를 먹었을까요?", opts: ["Conan", "Kogoro"], ans: 1 }
+          ],
+          speaking: [
+            { en: "I am home.", ko: "나는 집에 있어." },
+            { en: "No cake!", ko: "케이크가 없어!" },
+            { en: "Look at Kogoro!", ko: "아저씨를 봐!" }
+          ]
+        },
+        lv2: {
+          sentences: [
+            { en: "Ran baked a sweet strawberry cake.", ko: "란은 달콤한 딸기 케이크를 구웠습니다.", icon: "🍰" },
+            { en: "She left it on the table.", ko: "그녀는 케이크를 식탁 위에 두었습니다.", icon: "🍽️" },
+            { en: "Soon, the cake was gone!", ko: "곧 케이크가 사라져 버렸습니다!", icon: "😱" },
+            { en: "Conan saw white cream on Kogoro's chin.", ko: "코난은 코고로 아저씨의 턱에서 하얀 크림을 보았습니다.", icon: "🔍" },
+            { en: "The mystery was solved!", ko: "수수께끼가 풀렸습니다!", icon: "💡" }
+          ],
+          vocab: {
+            "sweet": "having a sugary taste / 달콤한",
+            "gone": "no longer there / 사라진",
+            "chin": "the bottom part of the face / 턱"
+          },
+          phrases: [
+            { en: "on the table", ko: "식탁 위에" },
+            { en: "was solved", ko: "해결되었다" }
+          ],
+          quiz: [
+            { q: "Where did Ran leave the cake?", opts: ["On the table", "In the car"], ans: 0 },
+            { q: "What did Conan see on Kogoro's chin?", opts: ["Chocolate", "White cream"], ans: 1 }
+          ],
+          speaking: [
+            { en: "I saw white cream on his chin.", ko: "나는 아저씨 턱에서 하얀 크림을 봤어." },
+            { en: "The cake was gone!", ko: "케이크가 사라졌었지!" },
+            { en: "I solved the mystery!", ko: "내가 사건을 해결했어!" }
+          ]
+        },
+        lv3: {
+          sentences: [
+            { en: "Ran spent the whole afternoon baking a fresh strawberry shortcake.", ko: "란은 오후 내내 신선한 딸기 쇼트케이크를 구웠습니다.", icon: "🍰" },
+            { en: "However, the moment she stepped out, the cake vanished without a trace.", ko: "하지만 그녀가 잠깐 자리를 비운 사이 케이크가 흔적도 없이 사라졌습니다.", icon: "💨" },
+            { en: "While Kogoro pretended to be asleep, Conan spotted cream on his cheek.", ko: "코고로가 자는 척하는 동안, 코난은 그의 뺨에 묻은 크림을 발견했습니다.", icon: "🕵️" },
+            { en: "Conan couldn't help chuckling at how obvious the culprit was.", ko: "코난은 범인이 너무 뻔해서 웃음을 참을 수 없었습니다.", icon: "😏" }
+          ],
+          vocab: {
+            "vanished": "disappeared suddenly / 감쪽같이 사라졌다",
+            "pretended": "acted as if something were true / ~인 척했다",
+            "culprit": "person responsible for a crime / 범인"
+          },
+          phrases: [
+            { en: "without a trace", ko: "흔적도 없이" },
+            { en: "couldn't help -ing", ko: "~하지 않을 수 없었다" }
+          ],
+          quiz: [
+            { q: "What was Kogoro doing when Ran returned?", opts: ["Pretending to sleep", "Washing dishes"], ans: 0 },
+            { q: "How did Conan react?", opts: ["He got angry", "He chuckled"], ans: 1 }
+          ],
+          speaking: [
+            { en: "The cake vanished without a trace.", ko: "케이크가 흔적도 없이 사라졌어." },
+            { en: "He pretended to be asleep on the sofa.", ko: "아저씨는 소파에서 잠든 척했지." },
+            { en: "I couldn't help chuckling at the clue.", ko: "단서가 너무 뻔해서 웃음이 나왔어." }
+          ]
+        }
+      }
+    },
+    {
+      date: "2026-11-16",
+      title: "[도라에몽] 빵을 먹으면 시험 백점? 암기빵!",
+      series: "Doraemon",
+      imageUrl: "",
+      levels: {
+        lv1: {
+          sentences: [
+            { en: "Jingu is sad.", ko: "진구가 슬퍼해요.", icon: "😭" },
+            { en: "He has a test.", ko: "진구에게 시험이 있어요.", icon: "📝" },
+            { en: "Doraemon has bread!", ko: "도라에몽에게 빵이 있어요!", icon: "🍞" },
+            { en: "Jingu eats the bread.", ko: "진구가 빵을 먹어요.", icon: "😋" },
+            { en: "Yay! He knows all!", ko: "야호! 진구가 다 알아요!", icon: "💯" }
+          ],
+          vocab: {
+            "sad": "feeling unhappy / 슬픈",
+            "test": "a school exam / 시험",
+            "bread": "food made from flour / 빵"
+          },
+          phrases: [
+            { en: "is sad", ko: "슬프다" },
+            { en: "eats the bread", ko: "빵을 먹다" }
+          ],
+          quiz: [
+            { q: "진구 기분이 어떤가요?", opts: ["😭 Sad", "😄 Happy"], ans: 0 },
+            { q: "도라에몽이 꺼낸 것은 무엇인가요?", opts: ["🍎 Apple", "🍞 Bread"], ans: 1 }
+          ],
+          speaking: [
+            { en: "I am sad.", ko: "나는 슬퍼." },
+            { en: "I eat the bread.", ko: "나는 빵을 먹어." },
+            { en: "Yay! I know all!", ko: "야호! 나는 다 알아!" }
+          ]
+        },
+        lv2: {
+          sentences: [
+            { en: "Jingu was worried about his math test tomorrow.", ko: "진구는 내일 수학 시험 때문에 걱정이 많았습니다.", icon: "😰" },
+            { en: "Doraemon took out special Memory Bread from his pocket.", ko: "도라에몽은 주머니에서 특별한 암기빵을 꺼냈습니다.", icon: "🍞" },
+            { en: "Jingu pressed the bread onto his notebook and ate it.", ko: "진구는 공책에 빵을 찍어서 먹었습니다.", icon: "📓" },
+            { en: "Suddenly, he remembered every single answer!", ko: "갑자기 진구는 모든 정답을 기억해 냈습니다!", icon: "✨" },
+            { en: "Iseul was very surprised by Jingu.", ko: "이슬이는 진구를 보고 매우 놀랐습니다.", icon: "😲" }
+          ],
+          vocab: {
+            "worried": "feeling anxious / 걱정하는",
+            "pocket": "a small bag sewn into clothes / 주머니",
+            "remembered": "kept in mind / 기억해 냈다"
+          },
+          phrases: [
+            { en: "worried about", ko: "~에 대해 걱정하는" },
+            { en: "took out", ko: "꺼냈다" }
+          ],
+          quiz: [
+            { q: "What test did Jingu have?", opts: ["Math test", "Music test"], ans: 0 },
+            { q: "Who was surprised by Jingu?", opts: ["Tung", "Iseul"], ans: 1 }
+          ],
+          speaking: [
+            { en: "I was worried about my math test.", ko: "나는 수학 시험 때문에 걱정했어." },
+            { en: "I ate the special Memory Bread.", ko: "나는 특별한 암기빵을 먹었지." },
+            { en: "I remembered every single answer!", ko: "나는 모든 정답을 기억해 냈어!" }
+          ]
+        },
+        lv3: {
+          sentences: [
+            { en: "Jingu panicked because he hadn't studied at all for his upcoming test.", ko: "진구는 다가오는 시험 공부를 전혀 하지 않아 패닉에 빠졌습니다.", icon: "😱" },
+            { en: "Feeling sorry for him, Doraemon pulled out a gadget called Memory Bread.", ko: "그가 딱해 보였던 도라에몽은 암기빵이라는 도구를 꺼내 주었습니다.", icon: "🍞" },
+            { en: "As long as Jingu ate the printed slices, he could memorize anything instantly.", ko: "글자가 찍힌 빵 조각을 먹기만 하면 무엇이든 즉시 외울 수 있었습니다.", icon: "🧠" },
+            { en: "However, he ate too many slices and ended up with a terrible stomachache.", ko: "하지만 빵을 너무 많이 먹는 바람에 결국 지독한 배탈이 나고 말았습니다.", icon: "🤢" }
+          ],
+          vocab: {
+            "panicked": "felt sudden fear / 당황했다, 패닉에 빠졌다",
+            "memorize": "learn by heart / 암기하다",
+            "stomachache": "pain in the belly / 배탈, 복통"
+          },
+          phrases: [
+            { en: "As long as ~", ko: "~하기만 하면" },
+            { en: "ended up with ~", ko: "결국 ~하게 되다" }
+          ],
+          quiz: [
+            { q: "What happened when Jingu ate too much bread?", opts: ["He got a stomachache", "He fell asleep"], ans: 0 },
+            { q: "How fast could he memorize things?", opts: ["After two days", "Instantly"], ans: 1 }
+          ],
+          speaking: [
+            { en: "I panicked because I hadn't studied at all.", ko: "공부를 전혀 안 해서 패닉에 빠졌었어." },
+            { en: "I could memorize anything instantly.", ko: "무엇이든 즉시 외울 수 있었지." },
+            { en: "I ended up with a terrible stomachache.", ko: "결국 지독한 배탈이 나고 말았어." }
+          ]
+        }
+      }
+    }
+  ];
+
+  let stories = [...FALLBACK_STORIES];
+  let progressData = JSON.parse(localStorage.getItem('backup_progress') || '{}');
+  let currentUser = 'kid3';
+  let currentStoryIdx = 0;
+  let currentSpeed = 1.0;
+  let isPlaying = false;
+  let isPaused = false;
+  let showKo = true;
+  let hidePhraseMeaning = false;
+  let recordings = {};
+
+  // --- 자연스러운 원어민 영어 음성 자동 선택 엔진 ---
+  let englishVoices = [];
+  let selectedVoice = null;
+
+  function scoreVoice(v) {
+    let score = 0;
+    const name = v.name.toLowerCase();
+    const lang = v.lang.toLowerCase();
+
+    if (lang.includes('en-us')) score += 30;
+    else if (lang.startsWith('en')) score += 10;
+
+    if (name.includes('natural')) score += 100;
+    if (name.includes('google us english')) score += 90;
+    if (name.includes('online')) score += 80;
+    if (name.includes('jenny') || name.includes('aria') || name.includes('guy') || name.includes('ava')) score += 75;
+    if (name.includes('samantha') || name.includes('alex') || name.includes('siri')) score += 70;
+    if (name.includes('enhanced') || name.includes('premium')) score += 60;
+    if (name.includes('samsung') && !name.includes('network')) score -= 10;
+
+    return score;
+  }
+
+  function loadBestVoices() {
+    const allVoices = window.speechSynthesis.getVoices();
+    if (!allVoices.length) return;
+
+    englishVoices = allVoices
+      .filter(v => v.lang.toLowerCase().startsWith('en'))
+      .sort((a, b) => scoreVoice(b) - scoreVoice(a));
+
+    const voiceSel = document.getElementById('voiceSelect');
+    if (englishVoices.length > 0) {
+      if (!selectedVoice) {
+        selectedVoice = englishVoices[0];
+      }
+      voiceSel.innerHTML = englishVoices.map((v, i) => {
+        const cleanName = v.name.replace(/Microsoft |Google |Online \(Natural\) - /g, '');
+        return `<option value="${i}" ${v.name === selectedVoice.name ? 'selected' : ''}>${cleanName} (${v.lang})</option>`;
+      }).join('');
+    } else {
+      voiceSel.innerHTML = `<option>기본 영어 음성</option>`;
+    }
+  }
+
+  function changeVoice(idx) {
+    stopAll();
+    selectedVoice = englishVoices[Number(idx)];
+    speakText("Hello! Let's read together.");
+  }
+
+  window.speechSynthesis.onvoiceschanged = loadBestVoices;
+  loadBestVoices();
+
+  function createUtterance(text) {
+    const spokenText = getPronunciationText(text);
+    const utter = new SpeechSynthesisUtterance(spokenText);
+    utter.lang = 'en-US';
+    utter.rate = currentSpeed;
+    utter.pitch = 1.02;
+    if (selectedVoice) {
+      utter.voice = selectedVoice;
+    }
+    return utter;
+  }
+
+  function getLevelKey() {
+    if (currentUser === 'kid3') return 'lv1';
+    if (currentUser === 'kid6') return 'lv2';
+    return 'lv3';
+  }
+
+  function formatSentenceHtml(text, vocabObj) {
+    let html = text;
+    CHARACTER_NAMES.forEach(name => {
+      const nameRegex = new RegExp(`\\b(${name})\\b`, 'g');
+      html = html.replace(nameRegex, `<span class="char-name">$1</span>`);
+    });
+    Object.keys(vocabObj || {}).forEach(word => {
+      const wordRegex = new RegExp(`(?![^<]*>)\\b(${word})\\b`, 'gi');
+      html = html.replace(wordRegex, `<span class="vocab" onclick="showTooltip(event, '${word}')">$1</span>`);
+    });
+    return html;
+  }
+
+  async function initApp() {
+    renderStoryOptions();
+    renderAll();
+
+    if (!GAS_WEB_APP_URL.startsWith("http")) {
+      document.getElementById('syncStatus').innerText = "⚠️ 시트 URL 미설정 (샘플 모드)";
+      return;
+    }
+
+    try {
+      document.getElementById('syncStatus').innerText = "🔄 구글 시트 동기화 중...";
+      const res = await fetch(GAS_WEB_APP_URL);
+      const data = await res.json();
+      if (data.status === 'ok') {
+        if (data.stories && data.stories.length > 0) stories = data.stories;
+        if (data.progress) {
+          progressData = data.progress;
+          localStorage.setItem('backup_progress', JSON.stringify(progressData));
+        }
+        renderStoryOptions();
+        renderAll();
+        document.getElementById('syncStatus').innerText = "✅ 모든 기기 실시간 동기화됨";
+      }
+    } catch (e) {
+      document.getElementById('syncStatus').innerText = "⚠️ 오프라인 백업 모드";
+    }
+  }
+
+  function renderStoryOptions() {
+    const sel = document.getElementById('storySelect');
+    sel.innerHTML = stories.map((s, idx) => 
+      `<option value="${idx}">[${s.date}] ${s.title}</option>`
+    ).join('');
+  }
+
+  function switchUser(user, btn) {
+    stopAll();
+    currentUser = user;
+    showKo = (user === 'kid3');
+    document.querySelectorAll('.profile-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderAll();
+  }
+
+  function selectStory(idx) {
+    stopAll();
+    currentStoryIdx = Number(idx);
+    renderAll();
+  }
+
+  function switchMode(mode, btn) {
+    stopAll();
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    ['read', 'quiz', 'speak'].forEach(m => {
+      document.getElementById(`mode-${m}`).style.display = (m === mode) ? 'block' : 'none';
+    });
+  }
+
+  function renderAll() {
+    const story = stories[currentStoryIdx];
+    const lvData = story.levels[getLevelKey()];
+    updateBadges(story.date);
+
+    const imgEl = document.getElementById('storyImage');
+    if (story.imageUrl) {
+      imgEl.src = story.imageUrl;
+      imgEl.style.display = 'block';
+    } else {
+      imgEl.style.display = 'none';
+    }
+
+    const storyEl = document.getElementById('storyContent');
+    storyEl.innerHTML = lvData.sentences.map((item, sIdx) => {
+      const enText = typeof item === 'string' ? item : item.en;
+      const koText = typeof item === 'string' ? '' : (item.ko || '');
+      const iconText = typeof item === 'string' ? '📖' : (item.icon || '📖');
+      const formattedEn = formatSentenceHtml(enText, lvData.vocab);
+
+      return `
+        <div class="sentence-card" id="sent-${sIdx}" onclick="speakSingle(${sIdx})">
+          <div class="scene-icon">${iconText}</div>
+          <div class="sent-body">
+            <div class="sent-en">${formattedEn}</div>
+            ${koText ? `<div class="sent-ko ${showKo ? '' : 'hidden'}">${koText}</div>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    document.getElementById('phraseList').innerHTML = (lvData.phrases || []).map(p => `
+      <div class="phrase-item">
+        <div style="font-weight:700; color:#1e293b;">${p.en}</div>
+        <div class="phrase-ko ${hidePhraseMeaning ? 'hidden-meaning' : ''}" style="font-size:14px; color:#475569;">${p.ko}</div>
+      </div>
+    `).join('');
+
+    document.getElementById('quizList').innerHTML = (lvData.quiz || []).map((q, qIdx) => `
+      <div class="quiz-box">
+        <div style="font-weight:700; margin-bottom:8px;">Q${qIdx + 1}. ${q.q}</div>
+        ${q.opts.map((opt, oIdx) => `
+          <button class="opt-btn" onclick="checkQuiz(this, ${oIdx === q.ans})">${opt}</button>
+        `).join('')}
+      </div>
+    `).join('');
+
+    document.getElementById('speakList').innerHTML = (lvData.speaking || []).map((sp, idx) => `
+      <div class="speak-card">
+        <div class="speak-en">${formatSentenceHtml(sp.en, {})}</div>
+        <div class="speak-ko">${sp.ko}</div>
+        <div class="ctrl-group">
+          <button class="btn" onclick="speakText('${sp.en.replace(/'/g, "\\'")}')">🔊 원어민 듣기</button>
+          <button class="btn danger" id="rec-btn-${idx}" onclick="toggleRecord(${idx})">🎙️ 녹음하기</button>
+          <button class="btn primary" id="play-rec-${idx}" style="display:none;" onclick="playRecording(${idx})">▶️ 내 녹음 듣기</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function toggleKoHint() {
+    showKo = !showKo;
+    document.querySelectorAll('.sent-ko').forEach(el => {
+      el.classList.toggle('hidden', !showKo);
+    });
+  }
+
+  // --- TTS 오디오 제어 ---
+  function setSpeed(spd, btn) {
+    currentSpeed = spd;
+    document.querySelectorAll('.btn.speed').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  function playAll() {
+    if (isPaused) {
+      window.speechSynthesis.resume();
+      isPaused = false;
+      isPlaying = true;
+      return;
+    }
+    stopAll();
+    isPlaying = true;
+    document.getElementById('storyContent').classList.add('playing');
+    speakNextSentence(0);
+  }
+
+  function speakNextSentence(idx) {
+    const sentences = stories[currentStoryIdx].levels[getLevelKey()].sentences;
+    if (!isPlaying || idx >= sentences.length) {
+      stopAll();
+      return;
+    }
+    document.querySelectorAll('.sentence-card').forEach(el => el.classList.remove('active'));
+    const activeEl = document.getElementById(`sent-${idx}`);
+    if (activeEl) activeEl.classList.add('active');
+
+    const rawText = typeof sentences[idx] === 'string' ? sentences[idx] : sentences[idx].en;
+    const utter = createUtterance(rawText);
+    utter.onend = () => {
+      if (isPlaying && !isPaused) speakNextSentence(idx + 1);
+    };
+    window.speechSynthesis.speak(utter);
+  }
+
+  function pauseSpeech() {
+    if (isPlaying) {
+      window.speechSynthesis.pause();
+      isPaused = true;
+    }
+  }
+
+  function stopAll() {
+    window.speechSynthesis.cancel();
+    isPlaying = false;
+    isPaused = false;
+    const storyEl = document.getElementById('storyContent');
+    if (storyEl) storyEl.classList.remove('playing');
+    document.querySelectorAll('.sentence-card').forEach(el => el.classList.remove('active'));
+  }
+
+  function speakSingle(idx) {
+    stopAll();
+    const item = stories[currentStoryIdx].levels[getLevelKey()].sentences[idx];
+    const rawText = typeof item === 'string' ? item : item.en;
+    const storyEl = document.getElementById('storyContent');
+    storyEl.classList.add('playing');
+    document.getElementById(`sent-${idx}`).classList.add('active');
+
+    const utter = createUtterance(rawText);
+    utter.onend = () => stopAll();
+    window.speechSynthesis.speak(utter);
+  }
+
+  function speakText(text) {
+    window.speechSynthesis.cancel();
+    const utter = createUtterance(text);
+    window.speechSynthesis.speak(utter);
+  }
+
+  // --- 단어 툴팁 & 구문 토글 ---
+  function showTooltip(e, word) {
+    e.stopPropagation();
+    const vocab = stories[currentStoryIdx].levels[getLevelKey()].vocab;
+    const key = Object.keys(vocab).find(k => k.toLowerCase() === word.toLowerCase());
+    if (!key) return;
+    const tip = document.getElementById('tooltip');
+    tip.innerHTML = `<strong>${key}</strong><br>${vocab[key]}`;
+    tip.style.display = 'block';
+    tip.style.left = Math.min(e.clientX, window.innerWidth - 270) + 'px';
+    tip.style.top = (e.clientY + 14) + 'px';
+  }
+  document.addEventListener('click', () => {
+    document.getElementById('tooltip').style.display = 'none';
+  });
+
+  function togglePhrases() {
+    hidePhraseMeaning = !hidePhraseMeaning;
+    document.querySelectorAll('.phrase-ko').forEach(el => {
+      el.classList.toggle('hidden-meaning', hidePhraseMeaning);
+    });
+  }
+
+  // --- 퀴즈 & 마이크 녹음 ---
+  function checkQuiz(btn, isCorrect) {
+    btn.classList.add(isCorrect ? 'correct' : 'wrong');
+  }
+
+  let mediaRecorder = null;
+  let audioChunks = [];
+  let recordingIdx = null;
+
+  async function toggleRecord(idx) {
+    const btn = document.getElementById(`rec-btn-${idx}`);
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+      mediaRecorder.stop();
+      btn.innerText = '🎙️ 다시 녹음';
+      return;
+    }
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    audioChunks = [];
+    recordingIdx = idx;
+
+    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(audioChunks, { type: 'audio/webm' });
+      recordings[recordingIdx] = URL.createObjectURL(blob);
+      document.getElementById(`play-rec-${recordingIdx}`).style.display = 'inline-block';
+      stream.getTracks().forEach(t => t.stop());
+    };
+    mediaRecorder.start();
+    btn.innerText = '⏹️ 녹음 중지';
+  }
+
+  function playRecording(idx) {
+    if (recordings[idx]) new Audio(recordings[idx]).play();
+  }
+
+  // --- 구글 시트 실시간 학습 완료 동기화 ---
+  async function markComplete(step) {
+    const date = stories[currentStoryIdx].date;
+    if (!progressData[currentUser]) progressData[currentUser] = {};
+    if (!progressData[currentUser][date]) progressData[currentUser][date] = { read: false, quiz: false, speak: false };
+    progressData[currentUser][date][step] = true;
+
+    localStorage.setItem('backup_progress', JSON.stringify(progressData));
+    updateBadges(date);
+
+    if (GAS_WEB_APP_URL.startsWith("http")) {
+      document.getElementById('syncStatus').innerText = "⏳ 기록 저장 중...";
+      await fetch(GAS_WEB_APP_URL, {
+        method: 'POST',
+        body: JSON.stringify({ user: currentUser, date, step })
+      });
+      document.getElementById('syncStatus').innerText = "✅ 시트 동기화 완료!";
+    }
+  }
+
+  function updateBadges(date) {
+    const userProg = progressData[currentUser] || {};
+    const dayProg = userProg[date] || {};
+    ['read', 'quiz', 'speak'].forEach(s => {
+      document.getElementById(`badge-${s}`).classList.toggle('done', !!dayProg[s]);
+    });
+
+    const completedDays = Object.values(userProg).filter(d => d.read && d.quiz && d.speak).length;
+    document.getElementById('streakDisplay').innerText = `🏆 3단계 완료: ${completedDays}일`;
+  }
+
+  initApp();
+</script>
+</body>
+</html>
