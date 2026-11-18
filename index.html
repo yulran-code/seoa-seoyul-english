@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>코난 & 도라에몽 데일리 영어</title>
+  <title>코난 · 도라에몽 · 향꽃 데일리 영어</title>
   <style>
     :root {
       --primary: #2563eb;
@@ -27,11 +27,16 @@
       padding: 6px 16px; border-radius: 20px; cursor: pointer; font-weight: 700; font-size: 14px;
     }
     .profile-btn.active { background: #3b82f6; color: white; border-color: #3b82f6; }
+    .right-tools { display: flex; align-items: center; gap: 8px; }
     .sync-badge { font-size: 12px; color: #94a3b8; }
+    .gear-btn {
+      background: #334155; color: white; border: none; border-radius: 8px;
+      padding: 5px 10px; cursor: pointer; font-size: 13px; font-weight: 600;
+    }
 
-    .container { max-width: 760px; margin: 16px auto; padding: 0 16px; }
+    .container { max-width: 780px; margin: 16px auto; padding: 0 16px; }
     .card {
-      background: var(--card); border-radius: 16px; padding: 20px;
+      background: var(--card); border-radius: 16px; padding: 22px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 16px;
     }
 
@@ -39,7 +44,7 @@
     .header-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
     select {
       padding: 10px 14px; border-radius: 10px; border: 1px solid #cbd5e1;
-      font-size: 15px; font-weight: 600; flex: 1; min-width: 200px;
+      font-size: 15px; font-weight: 700; flex: 1; min-width: 220px; color: #0f172a;
     }
     .streak-box {
       background: #eff6ff; color: #1d4ed8; padding: 8px 14px;
@@ -64,16 +69,10 @@
     }
     .tab-btn.active { background: var(--primary); color: white; }
 
-    /* 에피소드 대표 이미지 */
-    .story-banner {
-      width: 100%; max-height: 240px; object-fit: cover; border-radius: 12px;
-      margin-bottom: 16px; display: none; border: 1px solid #e2e8f0;
-    }
-
     /* 오디오 컨트롤 */
     .player-bar {
       display: flex; flex-direction: column; gap: 10px;
-      background: #f1f5f9; padding: 12px; border-radius: 12px; margin-bottom: 16px;
+      background: #f1f5f9; padding: 12px; border-radius: 12px; margin-bottom: 18px;
     }
     .player-row {
       display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
@@ -92,27 +91,48 @@
       background: white; color: #334155; max-width: 240px; min-width: 160px; flex: none;
     }
 
-    /* 문장 카드형 UI (그림 + 영어 + 한글 힌트) */
-    .story-list { display: flex; flex-direction: column; gap: 10px; }
-    .sentence-card {
-      display: flex; align-items: center; gap: 14px;
-      padding: 12px 14px; border-radius: 12px; border: 1px solid #e2e8f0;
-      background: #ffffff; cursor: pointer; transition: all 0.2s;
+    /* ★ Free Daily English 스타일 단일 본문 박스 ★ */
+    .story-passage-box {
+      background: #ffffff;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 22px 24px;
+      font-size: 20px;
+      line-height: 2.0;
+      color: #1e293b;
+      word-break: keep-all;
     }
-    .sentence-card:hover { background: #f8fafc; }
-    .story-list.playing .sentence-card { opacity: 0.35; }
-    .story-list.playing .sentence-card.active {
-      opacity: 1; background: var(--highlight); border-color: #eab308; transform: scale(1.01);
+    .sentence-span {
+      padding: 3px 5px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.2s, opacity 0.2s;
     }
-    .scene-icon {
-      font-size: 32px; min-width: 54px; height: 54px;
-      background: #f1f5f9; border-radius: 12px;
-      display: flex; align-items: center; justify-content: center;
+    .sentence-span:hover {
+      background-color: #f1f5f9;
     }
-    .sent-body { flex: 1; }
-    .sent-en { font-size: 20px; font-weight: 600; line-height: 1.5; }
-    .sent-ko { font-size: 14px; color: #64748b; margin-top: 4px; }
-    .sent-ko.hidden { display: none; }
+    /* 재생 중일 때 현재 읽는 문장 외 나머지 흐림 처리 */
+    .story-passage-box.playing .sentence-span {
+      opacity: 0.35;
+    }
+    .story-passage-box.playing .sentence-span.active {
+      opacity: 1;
+      background-color: var(--highlight);
+      box-shadow: 0 1px 4px rgba(234, 179, 8, 0.3);
+    }
+
+    /* 한글 해석 박스 (토글) */
+    .translation-box {
+      margin-top: 14px;
+      background: #f8fafc;
+      border: 1px dashed #cbd5e1;
+      border-radius: 12px;
+      padding: 16px 20px;
+      font-size: 15px;
+      line-height: 1.75;
+      color: #475569;
+    }
+    .translation-box.hidden { display: none; }
 
     /* 고유명사(캐릭터 이름) 전용 색상 */
     .char-name {
@@ -141,21 +161,37 @@
     }
     .hidden-meaning { filter: blur(5px); user-select: none; }
 
-    /* 퀴즈 & 스피킹 */
-    .quiz-box { margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid #e2e8f0; }
+    /* 퀴즈 & 피드백 배너 */
+    .quiz-box { margin-bottom: 18px; padding-bottom: 16px; border-bottom: 1px solid #e2e8f0; }
     .opt-btn {
-      display: block; width: 100%; text-align: left; padding: 10px 14px;
-      margin-top: 6px; border: 1px solid #cbd5e1; border-radius: 8px;
-      background: white; cursor: pointer; font-size: 15px;
+      display: block; width: 100%; text-align: left; padding: 12px 14px;
+      margin-top: 8px; border: 2px solid #cbd5e1; border-radius: 10px;
+      background: white; cursor: pointer; font-size: 15px; font-weight: 600;
     }
-    .opt-btn.correct { background: #dcfce7; border-color: #16a34a; font-weight: 700; }
-    .opt-btn.wrong { background: #fee2e2; border-color: #dc2626; }
+    .opt-btn.correct { background: #dcfce7; border-color: #16a34a; color: #14532d; font-weight: 800; }
+    .opt-btn.wrong { background: #fee2e2; border-color: #dc2626; color: #7f1d1d; }
+    .quiz-feedback {
+      margin-top: 10px; padding: 10px 14px; border-radius: 10px;
+      font-size: 15px; font-weight: 800; display: none;
+    }
+    .quiz-feedback.correct { display: block; background: #16a34a; color: white; }
+    .quiz-feedback.wrong { display: block; background: #dc2626; color: white; }
 
+    /* 스피킹 */
     .speak-card {
       border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; margin-bottom: 12px;
     }
     .speak-en { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
     .speak-ko { font-size: 14px; color: var(--muted); margin-bottom: 10px; }
+
+    /* 설정 모달 */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(15,23,42,0.5);
+      display: none; align-items: center; justify-content: center; z-index: 2000; padding: 16px;
+    }
+    .modal-box {
+      background: white; border-radius: 16px; padding: 22px; max-width: 480px; width: 100%;
+    }
   </style>
 </head>
 <body>
@@ -166,7 +202,10 @@
     <button class="profile-btn" onclick="switchUser('kid6', this)">👦 서율</button>
     <button class="profile-btn" onclick="switchUser('mom', this)">👩 엄마</button>
   </div>
-  <div class="sync-badge" id="syncStatus">☁️ 구글 시트 연결 대기중</div>
+  <div class="right-tools">
+    <div class="sync-badge" id="syncStatus">☁️ 동기화 확인중</div>
+    <button class="gear-btn" onclick="openSettings()">⚙️ 설정</button>
+  </div>
 </div>
 
 <div class="container">
@@ -190,8 +229,6 @@
 
   <!-- 모드 1: 스토리 읽기 -->
   <div id="mode-read" class="card">
-    <img id="storyImage" class="story-banner" alt="에피소드 장면" />
-
     <div class="player-bar">
       <div class="player-row">
         <div class="ctrl-group">
@@ -210,11 +247,15 @@
           <span style="font-size:13px; font-weight:700; color:#475569;">🎙️ 성우:</span>
           <select id="voiceSelect" class="voice-select" onchange="changeVoice(this.value)"></select>
         </div>
-        <button class="btn" onclick="toggleKoHint()">🇰🇷 한글 뜻 보기/숨기기</button>
+        <button class="btn" onclick="toggleKoHint()">🇰🇷 한글 해석 보기/숨기기</button>
       </div>
     </div>
 
-    <div id="storyContent" class="story-list"></div>
+    <!-- 단일 본문 박스 -->
+    <div id="storyContent" class="story-passage-box"></div>
+
+    <!-- 전체 한글 해석 박스 -->
+    <div id="translationBox" class="translation-box"></div>
 
     <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
@@ -249,25 +290,42 @@
   </div>
 </div>
 
+<!-- 설정 모달 (웹앱 URL 저장) -->
+<div class="modal-backdrop" id="settingsModal">
+  <div class="modal-box">
+    <h3 style="margin-top:0;">⚙️ 구글 시트 웹앱 URL 설정</h3>
+    <p style="font-size:13px; color:#64748b; line-height:1.5;">
+      Apps Script 배포 후 발급받은 <strong>https://script.google.com/.../exec</strong> 주소를 입력하고 저장하세요.
+    </p>
+    <input type="text" id="gasUrlInput" placeholder="https://script.google.com/macros/s/.../exec"
+      style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; margin-bottom:14px;" />
+    <div style="display:flex; gap:8px; justify-content:flex-end;">
+      <button class="btn" onclick="closeSettings()">닫기</button>
+      <button class="btn primary" onclick="saveSettings()">연결 저장</button>
+    </div>
+  </div>
+</div>
+
 <div id="tooltip"></div>
 
 <script>
-  // ★ 2단계에서 복사한 Google Apps Script 웹 앱 URL을 아래에 붙여넣으세요 ★
-  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwKe4yHYoSQ8rbNZ0rsqD20z2BPjSXXbhZTOS5LOv6Rdb2XfoHl-cB9ge-v0xc7PlOcig/exec";
+  const DEFAULT_GAS_URL = ""; // 직접 코드에 넣거나 ⚙️ 설정 버튼으로 저장 가능
 
   const CHARACTER_NAMES = [
     "Conan", "Ran", "Kogoro", "Ai", "Agasa", "Sonoko", "Heiji", "Kaito", "Kid", "Genta", "Ayumi", "Mitsuhiko",
-    "Doraemon", "Jingu", "Iseul", "Tung", "Bisil", "Youngmin"
+    "Doraemon", "Jingu", "Iseul", "Tung", "Bisil", "Youngmin",
+    "Rintaro", "Kaoruko", "Shohei", "Subaru", "Saku"
   ];
 
-  // 원어민 TTS 발음 교정 사전 (화면 표기는 유지하고 읽을 때만 자연스럽게 발음)
   const PRONUNCIATION_MAP = {
     "Iseul": "Ee-seul",
     "Jingu": "Jin-goo",
     "Bisil": "Bee-sil",
     "Youngmin": "Young-min",
     "Agasa": "Ah-gah-sah",
-    "Kogoro": "Ko-go-ro"
+    "Kogoro": "Ko-go-ro",
+    "Rintaro": "Rin-tah-ro",
+    "Kaoruko": "Kah-oh-roo-ko"
   };
 
   function getPronunciationText(text) {
@@ -284,15 +342,14 @@
       date: "2026-11-18",
       title: "[코난] 사라진 딸기 케이크의 비밀",
       series: "Conan",
-      imageUrl: "",
       levels: {
         lv1: {
           sentences: [
-            { en: "Conan is home.", ko: "코난이 집에 있어요.", icon: "🏠" },
-            { en: "Ran makes a cake.", ko: "란 누나가 케이크를 만들어요.", icon: "🍰" },
-            { en: "Oh no! No cake!", ko: "어라! 케이크가 없어요!", icon: "😱" },
-            { en: "Look at Kogoro!", ko: "모리 아저씨를 보세요!", icon: "👀" },
-            { en: "White cream is there!", ko: "입가에 하얀 크림이 묻어 있어요!", icon: "🍦" }
+            { en: "Conan is home.", ko: "코난이 집에 있어요." },
+            { en: "Ran makes a cake.", ko: "란 누나가 케이크를 만들어요." },
+            { en: "Oh no! No cake!", ko: "어라! 케이크가 없어요!" },
+            { en: "Look at Kogoro!", ko: "모리 아저씨를 보세요!" },
+            { en: "White cream is there!", ko: "입가에 하얀 크림이 묻어 있어요!" }
           ],
           vocab: {
             "home": "the place where you live / 집",
@@ -315,143 +372,79 @@
         },
         lv2: {
           sentences: [
-            { en: "Ran baked a sweet strawberry cake.", ko: "란은 달콤한 딸기 케이크를 구웠습니다.", icon: "🍰" },
-            { en: "She left it on the table.", ko: "그녀는 케이크를 식탁 위에 두었습니다.", icon: "🍽️" },
-            { en: "Soon, the cake was gone!", ko: "곧 케이크가 사라져 버렸습니다!", icon: "😱" },
-            { en: "Conan saw white cream on Kogoro's chin.", ko: "코난은 코고로 아저씨의 턱에서 하얀 크림을 보았습니다.", icon: "🔍" },
-            { en: "The mystery was solved!", ko: "수수께끼가 풀렸습니다!", icon: "💡" }
+            { en: "On Sunday afternoon, Ran baked a sweet strawberry cake in the kitchen.", ko: "일요일 오후, 란은 부엌에서 달콤한 딸기 케이크를 구웠습니다." },
+            { en: "She put fresh whipped cream and bright red berries on top.", ko: "그녀는 케이크 위에 신선한 생크림과 새빨간 딸기를 올렸습니다." },
+            { en: "Then, the telephone rang in the living room, so Ran stepped out.", ko: "그때 거실에서 전화벨이 울렸고, 란은 잠시 밖으로 나갔습니다." },
+            { en: "Conan was reading a mystery book near the window.", ko: "코난은 창가 근처에서 추리 소설을 읽고 있었습니다." },
+            { en: "Two minutes later, Ran came back and screamed in surprise!", ko: "2분 뒤, 란이 돌아와 깜짝 놀라며 비명을 질렀습니다!" },
+            { en: "The big plate on the table was completely empty.", ko: "식탁 위의 큰 접시가 완전히 텅 비어 있었던 것입니다." },
+            { en: "Kogoro was sitting on the sofa with his eyes closed.", ko: "코고로 아저씨는 눈을 감은 채 소파에 앉아 있었습니다." },
+            { en: "Conan walked closer and noticed a tiny drop of white cream on Kogoro's chin.", ko: "코난은 가까이 다가가 코고로 아저씨의 턱에 묻은 작은 하얀 크림 방울을 알아차렸습니다." },
+            { en: "Conan smiled and said, 'The culprit is right here in this room!'", ko: "코난은 미소 지으며 말했습니다. '범인은 바로 이 방 안에 있어요!'" }
           ],
           vocab: {
-            "sweet": "having a sugary taste / 달콤한",
-            "gone": "no longer there / 사라진",
-            "chin": "the bottom part of the face / 턱"
+            "fresh": "newly made or clean / 신선한",
+            "stepped": "walked a short distance / 걸음을 옮겼다",
+            "completely": "totally, 100% / 완전히",
+            "noticed": "saw or became aware of / 알아차렸다",
+            "culprit": "person who did something wrong / 범인"
           },
           phrases: [
-            { en: "on the table", ko: "식탁 위에" },
-            { en: "was solved", ko: "해결되었다" }
+            { en: "stepped out", ko: "잠시 자리를 비웠다" },
+            { en: "in surprise", ko: "깜짝 놀라서" },
+            { en: "walked closer", ko: "더 가까이 걸어갔다" }
           ],
           quiz: [
-            { q: "Where did Ran leave the cake?", opts: ["On the table", "In the car"], ans: 0 },
-            { q: "What did Conan see on Kogoro's chin?", opts: ["Chocolate", "White cream"], ans: 1 }
+            { q: "Why did Ran leave the kitchen?", opts: ["To answer the telephone", "To buy more milk", "To wash her hands"], ans: 0 },
+            { q: "What was Conan doing in the room?", opts: ["Watching TV", "Reading a mystery book", "Sleeping on the sofa"], ans: 1 },
+            { q: "What clue did Conan find on Kogoro?", opts: ["Red strawberry juice", "A drop of white cream", "A fork in his hand"], ans: 1 }
           ],
           speaking: [
-            { en: "I saw white cream on his chin.", ko: "나는 아저씨 턱에서 하얀 크림을 봤어." },
-            { en: "The cake was gone!", ko: "케이크가 사라졌었지!" },
-            { en: "I solved the mystery!", ko: "내가 사건을 해결했어!" }
+            { en: "I was reading a mystery book near the window.", ko: "나는 창가에서 추리 소설을 읽고 있었어." },
+            { en: "The big plate was completely empty!", ko: "큰 접시가 완전히 비어 있었지!" },
+            { en: "I noticed a tiny drop of white cream on his chin.", ko: "아저씨 턱에서 작은 하얀 크림을 발견했어." },
+            { en: "The culprit is right here in this room!", ko: "범인은 바로 이 방 안에 있어!" }
           ]
         },
         lv3: {
           sentences: [
-            { en: "Ran spent the whole afternoon baking a fresh strawberry shortcake.", ko: "란은 오후 내내 신선한 딸기 쇼트케이크를 구웠습니다.", icon: "🍰" },
-            { en: "However, the moment she stepped out, the cake vanished without a trace.", ko: "하지만 그녀가 잠깐 자리를 비운 사이 케이크가 흔적도 없이 사라졌습니다.", icon: "💨" },
-            { en: "While Kogoro pretended to be asleep, Conan spotted cream on his cheek.", ko: "코고로가 자는 척하는 동안, 코난은 그의 뺨에 묻은 크림을 발견했습니다.", icon: "🕵️" },
-            { en: "Conan couldn't help chuckling at how obvious the culprit was.", ko: "코난은 범인이 너무 뻔해서 웃음을 참을 수 없었습니다.", icon: "😏" }
+            { en: "On a quiet Sunday afternoon, Ran decided to surprise everyone by baking a homemade strawberry shortcake from scratch.", ko: "조용한 일요일 오후, 란은 처음부터 직접 만든 수제 딸기 쇼트케이크로 모두를 깜짝 놀라게 해주기로 마음먹었습니다." },
+            { en: "She carefully layered the soft sponge cake with freshly whipped cream and placed the largest, juiciest strawberries right on top.", ko: "그녀는 부드러운 스펀지케이크에 갓 휘핑한 생크림을 정성껏 바르고, 가장 크고 과즙이 풍부한 딸기를 맨 위에 올렸습니다." },
+            { en: "Just as she was about to cut the first slice, the landline phone rang loudly in the hallway.", ko: "막 첫 조각을 자르려던 찰나, 복도에서 집 전화벨이 요란하게 울렸습니다." },
+            { en: "Ran left the cake unattended on the dining table for barely two minutes while she answered the call.", ko: "란은 전화를 받는 동안 불과 2분 남짓 식탁 위에 케이크를 그대로 두고 자리를 비웠습니다." },
+            { en: "Meanwhile, Conan was quietly flipping through a detective novel in the corner of the living room.", ko: "그동안 코난은 거실 한구석에서 탐정 소설을 조용히 넘겨보고 있었습니다." },
+            { en: "When Ran returned to the kitchen, she froze in shock and let out a loud gasp.", ko: "란이 부엌으로 돌아왔을 때, 그녀는 충격에 얼어붙어 큰 숨을 들이켰습니다." },
+            { en: "The entire cake had vanished without leaving even a single crumb behind on the porcelain plate.", ko: "케이크 전체가 도자기 접시 위에 부스러기 하나 남기지 않고 감쪽같이 사라져 버린 것입니다." },
+            { en: "Sitting innocently on the couch, Uncle Kogoro pretended to be fast asleep, snoring softly with his arms crossed.", ko: "소파에 시치미를 떼고 앉아 있던 모리 코고로 아저씨는 팔짱을 낀 채 나지막이 코를 골며 깊이 잠든 척하고 있었습니다." },
+            { en: "However, Conan's sharp eyes immediately caught a tiny smudge of white whipped cream right at the corner of Kogoro's mouth.", ko: "하지만 코난의 예리한 눈은 코고로 아저씨의 입가 끝에 묻은 작은 하얀 생크림 자국을 즉시 포착했습니다." },
+            { en: "To make matters even more obvious, Kogoro's Adam's apple bobbed as he tried to swallow the last bite.", ko: "설상가상으로 증거가 너무나 명백하게도, 코고로가 마지막 한 입을 삼키려 애쓰면서 목젖이 꿀꺽 움직였습니다." },
+            { en: "Conan couldn't help chuckling under his breath at how easily the self-proclaimed great detective had given himself away.", ko: "코난은 자칭 명탐정이 너무나 어설프게 스스로 정체를 들통낸 모습에 속으로 웃음을 참을 수 없었습니다." },
+            { en: "Adjusting his glasses with a knowing smirk, Conan thought to himself, 'Well, this has to be the easiest case I've ever solved.'", ko: "의미심장한 미소를 지으며 안경을 고쳐 쓴 코난은 속으로 생각했습니다. '음, 이건 내가 해결한 사건 중 가장 쉬운 사건이겠군.'" }
           ],
           vocab: {
-            "vanished": "disappeared suddenly / 감쪽같이 사라졌다",
-            "pretended": "acted as if something were true / ~인 척했다",
-            "culprit": "person responsible for a crime / 범인"
+            "unattended": "not watched or looked after / 방치된, 자리를 비운",
+            "vanished": "disappeared suddenly and completely / 감쪽같이 사라졌다",
+            "crumb": "a very small piece of bread or cake / 부스러기",
+            "smudge": "a blurry spot or streak / 얼룩, 자국",
+            "swallow": "cause food or drink to go down the throat / 삼키다",
+            "self-proclaimed": "claimed by oneself without proof / 자칭의"
           },
           phrases: [
-            { en: "without a trace", ko: "흔적도 없이" },
-            { en: "couldn't help -ing", ko: "~하지 않을 수 없었다" }
+            { en: "from scratch", ko: "맨처음부터 직접" },
+            { en: "without leaving a crumb", ko: "부스러기 하나 남기지 않고" },
+            { en: "couldn't help chuckling", ko: "웃음을 참을 수 없었다" },
+            { en: "give oneself away", ko: "본색(비밀)을 들통내다" }
           ],
           quiz: [
-            { q: "What was Kogoro doing when Ran returned?", opts: ["Pretending to sleep", "Washing dishes"], ans: 0 },
-            { q: "How did Conan react?", opts: ["He got angry", "He chuckled"], ans: 1 }
+            { q: "Why did Ran leave the dining table unattended?", opts: ["To answer the landline phone in the hallway", "To greet a visitor at the front door", "To look for a bigger cake knife"], ans: 0 },
+            { q: "What physical reaction gave Kogoro away besides the cream?", opts: ["His stomach growled loudly", "He swallowed the last bite", "He dropped a fork on the floor"], ans: 1 },
+            { q: "How did Conan feel about solving this mystery?", opts: ["Frustrated by the lack of clues", "Amused at how easy the case was", "Angry that he didn't get a slice"], ans: 1 }
           ],
           speaking: [
-            { en: "The cake vanished without a trace.", ko: "케이크가 흔적도 없이 사라졌어." },
-            { en: "He pretended to be asleep on the sofa.", ko: "아저씨는 소파에서 잠든 척했지." },
-            { en: "I couldn't help chuckling at the clue.", ko: "단서가 너무 뻔해서 웃음이 나왔어." }
-          ]
-        }
-      }
-    },
-    {
-      date: "2026-11-16",
-      title: "[도라에몽] 빵을 먹으면 시험 백점? 암기빵!",
-      series: "Doraemon",
-      imageUrl: "",
-      levels: {
-        lv1: {
-          sentences: [
-            { en: "Jingu is sad.", ko: "진구가 슬퍼해요.", icon: "😭" },
-            { en: "He has a test.", ko: "진구에게 시험이 있어요.", icon: "📝" },
-            { en: "Doraemon has bread!", ko: "도라에몽에게 빵이 있어요!", icon: "🍞" },
-            { en: "Jingu eats the bread.", ko: "진구가 빵을 먹어요.", icon: "😋" },
-            { en: "Yay! He knows all!", ko: "야호! 진구가 다 알아요!", icon: "💯" }
-          ],
-          vocab: {
-            "sad": "feeling unhappy / 슬픈",
-            "test": "a school exam / 시험",
-            "bread": "food made from flour / 빵"
-          },
-          phrases: [
-            { en: "is sad", ko: "슬프다" },
-            { en: "eats the bread", ko: "빵을 먹다" }
-          ],
-          quiz: [
-            { q: "진구 기분이 어떤가요?", opts: ["😭 Sad", "😄 Happy"], ans: 0 },
-            { q: "도라에몽이 꺼낸 것은 무엇인가요?", opts: ["🍎 Apple", "🍞 Bread"], ans: 1 }
-          ],
-          speaking: [
-            { en: "I am sad.", ko: "나는 슬퍼." },
-            { en: "I eat the bread.", ko: "나는 빵을 먹어." },
-            { en: "Yay! I know all!", ko: "야호! 나는 다 알아!" }
-          ]
-        },
-        lv2: {
-          sentences: [
-            { en: "Jingu was worried about his math test tomorrow.", ko: "진구는 내일 수학 시험 때문에 걱정이 많았습니다.", icon: "😰" },
-            { en: "Doraemon took out special Memory Bread from his pocket.", ko: "도라에몽은 주머니에서 특별한 암기빵을 꺼냈습니다.", icon: "🍞" },
-            { en: "Jingu pressed the bread onto his notebook and ate it.", ko: "진구는 공책에 빵을 찍어서 먹었습니다.", icon: "📓" },
-            { en: "Suddenly, he remembered every single answer!", ko: "갑자기 진구는 모든 정답을 기억해 냈습니다!", icon: "✨" },
-            { en: "Iseul was very surprised by Jingu.", ko: "이슬이는 진구를 보고 매우 놀랐습니다.", icon: "😲" }
-          ],
-          vocab: {
-            "worried": "feeling anxious / 걱정하는",
-            "pocket": "a small bag sewn into clothes / 주머니",
-            "remembered": "kept in mind / 기억해 냈다"
-          },
-          phrases: [
-            { en: "worried about", ko: "~에 대해 걱정하는" },
-            { en: "took out", ko: "꺼냈다" }
-          ],
-          quiz: [
-            { q: "What test did Jingu have?", opts: ["Math test", "Music test"], ans: 0 },
-            { q: "Who was surprised by Jingu?", opts: ["Tung", "Iseul"], ans: 1 }
-          ],
-          speaking: [
-            { en: "I was worried about my math test.", ko: "나는 수학 시험 때문에 걱정했어." },
-            { en: "I ate the special Memory Bread.", ko: "나는 특별한 암기빵을 먹었지." },
-            { en: "I remembered every single answer!", ko: "나는 모든 정답을 기억해 냈어!" }
-          ]
-        },
-        lv3: {
-          sentences: [
-            { en: "Jingu panicked because he hadn't studied at all for his upcoming test.", ko: "진구는 다가오는 시험 공부를 전혀 하지 않아 패닉에 빠졌습니다.", icon: "😱" },
-            { en: "Feeling sorry for him, Doraemon pulled out a gadget called Memory Bread.", ko: "그가 딱해 보였던 도라에몽은 암기빵이라는 도구를 꺼내 주었습니다.", icon: "🍞" },
-            { en: "As long as Jingu ate the printed slices, he could memorize anything instantly.", ko: "글자가 찍힌 빵 조각을 먹기만 하면 무엇이든 즉시 외울 수 있었습니다.", icon: "🧠" },
-            { en: "However, he ate too many slices and ended up with a terrible stomachache.", ko: "하지만 빵을 너무 많이 먹는 바람에 결국 지독한 배탈이 나고 말았습니다.", icon: "🤢" }
-          ],
-          vocab: {
-            "panicked": "felt sudden fear / 당황했다, 패닉에 빠졌다",
-            "memorize": "learn by heart / 암기하다",
-            "stomachache": "pain in the belly / 배탈, 복통"
-          },
-          phrases: [
-            { en: "As long as ~", ko: "~하기만 하면" },
-            { en: "ended up with ~", ko: "결국 ~하게 되다" }
-          ],
-          quiz: [
-            { q: "What happened when Jingu ate too much bread?", opts: ["He got a stomachache", "He fell asleep"], ans: 0 },
-            { q: "How fast could he memorize things?", opts: ["After two days", "Instantly"], ans: 1 }
-          ],
-          speaking: [
-            { en: "I panicked because I hadn't studied at all.", ko: "공부를 전혀 안 해서 패닉에 빠졌었어." },
-            { en: "I could memorize anything instantly.", ko: "무엇이든 즉시 외울 수 있었지." },
-            { en: "I ended up with a terrible stomachache.", ko: "결국 지독한 배탈이 나고 말았어." }
+            { en: "Ran decided to bake a strawberry shortcake from scratch.", ko: "란 누나가 처음부터 직접 딸기 쇼트케이크를 굽기로 했어." },
+            { en: "The entire cake vanished without leaving a single crumb.", ko: "케이크 전체가 부스러기 하나 남기지 않고 사라졌지." },
+            { en: "He pretended to be fast asleep with his arms crossed.", ko: "아저씨는 팔짱을 낀 채 깊이 잠든 척하고 있었어." },
+            { en: "I couldn't help chuckling at how easily he gave himself away.", ko: "아저씨가 너무 어설프게 들통난 게 웃겨서 웃음을 참을 수 없었어." }
           ]
         }
       }
@@ -469,7 +462,25 @@
   let hidePhraseMeaning = false;
   let recordings = {};
 
-  // --- 자연스러운 원어민 영어 음성 자동 선택 엔진 ---
+  function getGasUrl() {
+    return localStorage.getItem('gas_web_app_url') || DEFAULT_GAS_URL;
+  }
+
+  function openSettings() {
+    document.getElementById('gasUrlInput').value = getGasUrl();
+    document.getElementById('settingsModal').style.display = 'flex';
+  }
+  function closeSettings() {
+    document.getElementById('settingsModal').style.display = 'none';
+  }
+  function saveSettings() {
+    const val = document.getElementById('gasUrlInput').value.trim();
+    localStorage.setItem('gas_web_app_url', val);
+    closeSettings();
+    initApp();
+  }
+
+  // --- 자연스러운 원어민 영어 음성 자동 선택 ---
   let englishVoices = [];
   let selectedVoice = null;
 
@@ -477,10 +488,8 @@
     let score = 0;
     const name = v.name.toLowerCase();
     const lang = v.lang.toLowerCase();
-
     if (lang.includes('en-us')) score += 30;
     else if (lang.startsWith('en')) score += 10;
-
     if (name.includes('natural')) score += 100;
     if (name.includes('google us english')) score += 90;
     if (name.includes('online')) score += 80;
@@ -488,23 +497,19 @@
     if (name.includes('samantha') || name.includes('alex') || name.includes('siri')) score += 70;
     if (name.includes('enhanced') || name.includes('premium')) score += 60;
     if (name.includes('samsung') && !name.includes('network')) score -= 10;
-
     return score;
   }
 
   function loadBestVoices() {
     const allVoices = window.speechSynthesis.getVoices();
     if (!allVoices.length) return;
-
     englishVoices = allVoices
       .filter(v => v.lang.toLowerCase().startsWith('en'))
       .sort((a, b) => scoreVoice(b) - scoreVoice(a));
 
     const voiceSel = document.getElementById('voiceSelect');
     if (englishVoices.length > 0) {
-      if (!selectedVoice) {
-        selectedVoice = englishVoices[0];
-      }
+      if (!selectedVoice) selectedVoice = englishVoices[0];
       voiceSel.innerHTML = englishVoices.map((v, i) => {
         const cleanName = v.name.replace(/Microsoft |Google |Online \(Natural\) - /g, '');
         return `<option value="${i}" ${v.name === selectedVoice.name ? 'selected' : ''}>${cleanName} (${v.lang})</option>`;
@@ -529,9 +534,7 @@
     utter.lang = 'en-US';
     utter.rate = currentSpeed;
     utter.pitch = 1.02;
-    if (selectedVoice) {
-      utter.voice = selectedVoice;
-    }
+    if (selectedVoice) utter.voice = selectedVoice;
     return utter;
   }
 
@@ -558,14 +561,15 @@
     renderStoryOptions();
     renderAll();
 
-    if (!GAS_WEB_APP_URL.startsWith("http")) {
-      document.getElementById('syncStatus').innerText = "⚠️ 시트 URL 미설정 (샘플 모드)";
+    const gasUrl = getGasUrl();
+    if (!gasUrl.startsWith("http")) {
+      document.getElementById('syncStatus').innerText = "⚙️ 우측 설정에서 URL 입력";
       return;
     }
 
     try {
       document.getElementById('syncStatus').innerText = "🔄 구글 시트 동기화 중...";
-      const res = await fetch(GAS_WEB_APP_URL);
+      const res = await fetch(gasUrl);
       const data = await res.json();
       if (data.status === 'ok') {
         if (data.stories && data.stories.length > 0) stories = data.stories;
@@ -575,10 +579,10 @@
         }
         renderStoryOptions();
         renderAll();
-        document.getElementById('syncStatus').innerText = "✅ 모든 기기 실시간 동기화됨";
+        document.getElementById('syncStatus').innerText = "✅ 시트 실시간 연동됨";
       }
     } catch (e) {
-      document.getElementById('syncStatus').innerText = "⚠️ 오프라인 백업 모드";
+      document.getElementById('syncStatus').innerText = "⚠️ 오프라인 모드";
     }
   }
 
@@ -618,32 +622,27 @@
     const lvData = story.levels[getLevelKey()];
     updateBadges(story.date);
 
-    const imgEl = document.getElementById('storyImage');
-    if (story.imageUrl) {
-      imgEl.src = story.imageUrl;
-      imgEl.style.display = 'block';
-    } else {
-      imgEl.style.display = 'none';
-    }
-
+    // ★ 단일 본문 박스 렌더링 (Free Daily English 스타일) ★
     const storyEl = document.getElementById('storyContent');
     storyEl.innerHTML = lvData.sentences.map((item, sIdx) => {
       const enText = typeof item === 'string' ? item : item.en;
-      const koText = typeof item === 'string' ? '' : (item.ko || '');
-      const iconText = typeof item === 'string' ? '📖' : (item.icon || '📖');
       const formattedEn = formatSentenceHtml(enText, lvData.vocab);
-
-      return `
-        <div class="sentence-card" id="sent-${sIdx}" onclick="speakSingle(${sIdx})">
-          <div class="scene-icon">${iconText}</div>
-          <div class="sent-body">
-            <div class="sent-en">${formattedEn}</div>
-            ${koText ? `<div class="sent-ko ${showKo ? '' : 'hidden'}">${koText}</div>` : ''}
-          </div>
-        </div>
-      `;
+      return `<span class="sentence-span" id="sent-${sIdx}" onclick="speakSingle(${sIdx})">${formattedEn}</span> `;
     }).join('');
 
+    // 한글 해석 전체 문단 렌더링
+    const transEl = document.getElementById('translationBox');
+    const koLines = lvData.sentences
+      .map(item => (typeof item === 'string' ? '' : item.ko))
+      .filter(Boolean);
+    if (koLines.length > 0) {
+      transEl.innerHTML = `<strong>🇰🇷 전체 한글 해석:</strong><br>` + koLines.join(' ');
+      transEl.classList.toggle('hidden', !showKo);
+    } else {
+      transEl.classList.add('hidden');
+    }
+
+    // 핵심 구문
     document.getElementById('phraseList').innerHTML = (lvData.phrases || []).map(p => `
       <div class="phrase-item">
         <div style="font-weight:700; color:#1e293b;">${p.en}</div>
@@ -651,15 +650,18 @@
       </div>
     `).join('');
 
+    // 퀴즈 (명확한 Correct / Wrong 피드백 배너)
     document.getElementById('quizList').innerHTML = (lvData.quiz || []).map((q, qIdx) => `
-      <div class="quiz-box">
-        <div style="font-weight:700; margin-bottom:8px;">Q${qIdx + 1}. ${q.q}</div>
+      <div class="quiz-box" id="quiz-box-${qIdx}">
+        <div style="font-weight:800; font-size:16px; margin-bottom:10px;">Q${qIdx + 1}. ${q.q}</div>
         ${q.opts.map((opt, oIdx) => `
-          <button class="opt-btn" onclick="checkQuiz(this, ${oIdx === q.ans})">${opt}</button>
+          <button class="opt-btn" onclick="checkQuiz(${qIdx}, ${oIdx}, ${q.ans}, this)">${opt}</button>
         `).join('')}
+        <div class="quiz-feedback" id="quiz-fb-${qIdx}"></div>
       </div>
     `).join('');
 
+    // 1인칭 스피킹
     document.getElementById('speakList').innerHTML = (lvData.speaking || []).map((sp, idx) => `
       <div class="speak-card">
         <div class="speak-en">${formatSentenceHtml(sp.en, {})}</div>
@@ -675,12 +677,9 @@
 
   function toggleKoHint() {
     showKo = !showKo;
-    document.querySelectorAll('.sent-ko').forEach(el => {
-      el.classList.toggle('hidden', !showKo);
-    });
+    document.getElementById('translationBox').classList.toggle('hidden', !showKo);
   }
 
-  // --- TTS 오디오 제어 ---
   function setSpeed(spd, btn) {
     currentSpeed = spd;
     document.querySelectorAll('.btn.speed').forEach(b => b.classList.remove('active'));
@@ -706,7 +705,7 @@
       stopAll();
       return;
     }
-    document.querySelectorAll('.sentence-card').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.sentence-span').forEach(el => el.classList.remove('active'));
     const activeEl = document.getElementById(`sent-${idx}`);
     if (activeEl) activeEl.classList.add('active');
 
@@ -731,7 +730,7 @@
     isPaused = false;
     const storyEl = document.getElementById('storyContent');
     if (storyEl) storyEl.classList.remove('playing');
-    document.querySelectorAll('.sentence-card').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.sentence-span').forEach(el => el.classList.remove('active'));
   }
 
   function speakSingle(idx) {
@@ -753,7 +752,6 @@
     window.speechSynthesis.speak(utter);
   }
 
-  // --- 단어 툴팁 & 구문 토글 ---
   function showTooltip(e, word) {
     e.stopPropagation();
     const vocab = stories[currentStoryIdx].levels[getLevelKey()].vocab;
@@ -776,9 +774,22 @@
     });
   }
 
-  // --- 퀴즈 & 마이크 녹음 ---
-  function checkQuiz(btn, isCorrect) {
-    btn.classList.add(isCorrect ? 'correct' : 'wrong');
+  function checkQuiz(qIdx, selectedIdx, correctIdx, btn) {
+    const box = document.getElementById(`quiz-box-${qIdx}`);
+    const fb = document.getElementById(`quiz-fb-${qIdx}`);
+    const allBtns = box.querySelectorAll('.opt-btn');
+
+    if (selectedIdx === correctIdx) {
+      btn.classList.remove('wrong');
+      btn.classList.add('correct');
+      fb.className = 'quiz-feedback correct';
+      fb.innerText = '✅ Correct! 정답입니다!';
+      allBtns.forEach(b => b.disabled = true);
+    } else {
+      btn.classList.add('wrong');
+      fb.className = 'quiz-feedback wrong';
+      fb.innerText = '❌ Not quite! 다시 한 번 골라보세요.';
+    }
   }
 
   let mediaRecorder = null;
@@ -812,7 +823,6 @@
     if (recordings[idx]) new Audio(recordings[idx]).play();
   }
 
-  // --- 구글 시트 실시간 학습 완료 동기화 ---
   async function markComplete(step) {
     const date = stories[currentStoryIdx].date;
     if (!progressData[currentUser]) progressData[currentUser] = {};
@@ -822,9 +832,10 @@
     localStorage.setItem('backup_progress', JSON.stringify(progressData));
     updateBadges(date);
 
-    if (GAS_WEB_APP_URL.startsWith("http")) {
+    const gasUrl = getGasUrl();
+    if (gasUrl.startsWith("http")) {
       document.getElementById('syncStatus').innerText = "⏳ 기록 저장 중...";
-      await fetch(GAS_WEB_APP_URL, {
+      await fetch(gasUrl, {
         method: 'POST',
         body: JSON.stringify({ user: currentUser, date, step })
       });
