@@ -89,21 +89,45 @@
       font-weight: 700;
     }
 
-    /* 날짜/회차 선택 바 */
-    .episode-bar { display: flex; gap: 7px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 12px; }
+    /* ★ 깔끔하게 정돈된 회차 선택 바 (최근 3일 칩 + 전체 회차 드롭다운) */
+    .episode-nav-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .episode-chips {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      flex: 1;
+    }
     .ep-chip {
-      flex: 0 0 auto;
       background: #fff;
       border: 1px solid var(--border);
       border-radius: 10px;
-      padding: 7px 11px;
-      font-size: 12.5px;
+      padding: 6px 11px;
+      font-size: 12px;
       cursor: pointer;
       text-align: left;
+      transition: all 0.15s;
     }
     .ep-chip.active { background: #0f172a; color: #fff; border-color: #0f172a; }
     .ep-chip .ep-date { font-size: 10.5px; opacity: 0.75; display: block; }
     .ep-chip .ep-title { font-weight: 700; }
+    .ep-select {
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      max-width: 220px;
+    }
 
     /* 메인 카드 */
     .card {
@@ -143,6 +167,14 @@
     .btn:hover { background: #f1f5f9; }
     .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
     .btn-primary:hover { background: #2563eb; }
+    .btn-rec { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+    .btn-rec.recording { background: #dc2626; color: #fff; border-color: #dc2626; animation: pulse 1s infinite; }
+    .btn-play-rec { background: #ecfdf5; color: #059669; border-color: #a7f3d0; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.65; }
+    }
 
     /* 컬러 범례 안내 바 */
     .legend-bar {
@@ -165,11 +197,7 @@
       transition: all 0.15s;
     }
     .sentence-card.speaking { background: #fef9c3; border-color: #eab308; }
-    .sentence-row {
-      display: flex;
-      align-items: center;
-      gap: 11px;
-    }
+    .sentence-row { display: flex; align-items: center; gap: 11px; }
     .scene-visual {
       width: 48px;
       height: 48px;
@@ -184,12 +212,7 @@
       box-shadow: 0 1px 2px rgba(0,0,0,0.04);
     }
     .sentence-body { flex: 1; min-width: 0; }
-    .sentence-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 8px;
-    }
+    .sentence-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
     .sentence-en {
       font-size: 15.5px;
       font-weight: 600;
@@ -198,7 +221,6 @@
       cursor: pointer;
       flex: 1;
     }
-    /* ★ 등장인물 이름 전용 컬러 하이라이트 */
     .char-name {
       color: #7c3aed;
       background: #f3e8ff;
@@ -206,7 +228,6 @@
       padding: 1px 5px;
       border-radius: 5px;
     }
-    /* ★ 어려운 어휘 파란색 하이라이트 */
     .vocab-highlight {
       background: #dbeafe;
       color: #1d4ed8;
@@ -234,6 +255,15 @@
       border-top: 1px dashed #cbd5e1;
       font-size: 13.5px;
       color: #475569;
+    }
+    .nuance-note {
+      margin-top: 6px;
+      padding: 6px 9px;
+      background: #fefce8;
+      border-left: 3px solid #eab308;
+      border-radius: 6px;
+      font-size: 12.5px;
+      color: #854d0e;
     }
     .hidden { display: none !important; }
 
@@ -273,6 +303,8 @@
       cursor: pointer;
       font-size: 13.5px;
     }
+
+    /* ★ 퀴즈 + 정답/오답 피드백 배너 */
     .quiz-item { margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
     .quiz-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
     .quiz-q { font-weight: 700; font-size: 14px; margin-bottom: 7px; }
@@ -285,21 +317,38 @@
       background: #fff;
       cursor: pointer;
       font-size: 13px;
+      transition: all 0.15s;
     }
+    .quiz-opt:hover { background: #f8fafc; }
     .quiz-opt.correct { background: var(--success-soft); border-color: var(--success); color: #065f46; font-weight: 700; }
     .quiz-opt.wrong { background: #fef2f2; border-color: var(--danger); color: #991b1b; }
+    .quiz-feedback {
+      margin-top: 7px;
+      padding: 7px 10px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 700;
+    }
+    .quiz-feedback.ok { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+    .quiz-feedback.no { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+
+    /* 스피킹 + 녹음 컨트롤 */
     .speak-item {
       background: #f8fafc;
       border: 1px solid var(--border);
       border-radius: 10px;
-      padding: 10px 12px;
-      margin-bottom: 7px;
+      padding: 11px 12px;
+      margin-bottom: 8px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
       gap: 8px;
       font-size: 14px;
     }
+    .speak-btns { display: flex; gap: 5px; flex-wrap: wrap; }
+
+    /* 완료 체크 바 */
     .complete-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
     .step-btn {
       padding: 11px 6px;
@@ -368,7 +417,7 @@
   <div class="user-tabs" id="userTabs"></div>
 
   <div id="studyView">
-    <div class="episode-bar" id="episodeBar"></div>
+    <div class="episode-nav-wrap" id="episodeBar"></div>
 
     <div class="card" id="storyCard">
       <div class="story-header">
@@ -409,7 +458,7 @@
     </div>
 
     <div class="card">
-      <h3 class="sec-title">🗣️ 나도 주인공처럼 말해보기 (따라 읽기)</h3>
+      <h3 class="sec-title">🗣️ 나도 주인공처럼 말해보기 (따라 읽기 & 녹음)</h3>
       <div id="speakingList"></div>
     </div>
 
@@ -460,7 +509,7 @@
 
 <script>
 // ★ 여기에 Apps Script 웹앱 주소를 한 번만 넣어두면 모든 기기에서 자동 연결됩니다!
-const DEFAULT_GAS_URL = "";
+const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycby7pqe1UeemP6U6QNUacfO65hF-7g93Eh9aj1N-Rjis1WECHgAgYGQF3aWiB4Ocm9Ye6A/exec";
 
 const USERS = [
   { id: 'seoa', name: '서아', level: 'lv1', desc: '초3 · 왕초보 동화형' },
@@ -481,6 +530,10 @@ let progressData = JSON.parse(localStorage.getItem('backup_progress') || '{}');
 let showAllKo = false;
 let speechRate = 1.0;
 const isReviewMode = new URLSearchParams(window.location.search).get('mode') === 'review';
+
+let activeRecorder = null;
+let activeRecIdx = null;
+let recordedAudioUrls = {};
 
 function getGasUrl() {
   return localStorage.getItem('gas_web_app_url') || DEFAULT_GAS_URL;
@@ -558,32 +611,51 @@ function renderUserTabs() {
 
 function selectUser(userId) {
   stopSpeech();
+  recordedAudioUrls = {};
   currentUser = userId;
   localStorage.setItem('selected_user', userId);
   renderUserTabs();
+  renderEpisodeBar();
   renderStory();
 }
 
+// ★ 최근 3일 치만 칩으로 띄우고, 전체 회차는 우측 드롭다운으로 깔끔하게 정리
 function renderEpisodeBar() {
   const bar = document.getElementById('episodeBar');
   if (!stories.length) {
     bar.innerHTML = '<div style="font-size:13px;color:var(--muted);">아직 등록된 스토리가 없습니다.</div>';
     return;
   }
-  bar.innerHTML = stories.map((st, idx) => {
+
+  const recentStories = stories.slice(0, 3);
+  const chipsHtml = recentStories.map((st, idx) => {
     const done = isDateCompleted(currentUser, st.date);
-    const sched = st.isScheduled ? ' 🔒예약' : '';
+    const sched = st.isScheduled ? ' 🔒' : '';
+    const dayLabel = idx === 0 ? '최신 · ' : '';
     return `
       <button class="ep-chip ${idx === currentStoryIdx ? 'active' : ''}" onclick="selectEpisode(${idx})">
-        <span class="ep-date">${st.date}${sched} ${done ? '✅' : ''}</span>
+        <span class="ep-date">${dayLabel}${st.date}${sched} ${done ? '✅' : ''}</span>
         <span class="ep-title">${st.title}</span>
       </button>
     `;
   }).join('');
+
+  const dropdownHtml = stories.length > 1 ? `
+    <select class="ep-select" onchange="selectEpisode(Number(this.value))" aria-label="전체 회차 선택">
+      ${stories.map((st, idx) => {
+        const done = isDateCompleted(currentUser, st.date) ? ' [완료]' : '';
+        const sched = st.isScheduled ? ' [예약]' : '';
+        return `<option value="${idx}" ${idx === currentStoryIdx ? 'selected' : ''}>📅 ${st.date} · ${st.title}${sched}${done}</option>`;
+      }).join('')}
+    </select>
+  ` : '';
+
+  bar.innerHTML = `<div class="episode-chips">${chipsHtml}</div>${dropdownHtml}`;
 }
 
 function selectEpisode(idx) {
   stopSpeech();
+  recordedAudioUrls = {};
   currentStoryIdx = idx;
   showAllKo = false;
   document.getElementById('allKoBtn').textContent = '🇰🇷 전체 해석 보기';
@@ -592,7 +664,6 @@ function selectEpisode(idx) {
   renderStory();
 }
 
-// 문장 내용에 맞는 직관적 상황 아이콘(이모지 일러스트) 자동 매칭
 function getSceneIcon(sentenceObj) {
   if (sentenceObj.icon) return sentenceObj.icon;
   const t = sentenceObj.en.toLowerCase();
@@ -613,12 +684,10 @@ function getSceneIcon(sentenceObj) {
   return '📖';
 }
 
-// 등장인물 이름(보라색) + 핵심 어휘(파란색) 동시 하이라이트
 function formatSentenceHtml(sentence, vocabObj) {
   let result = sentence;
   const placeholders = [];
 
-  // 1. 등장인물 이름 먼저 치환
   const charRegex = new RegExp(`\\b(${CHARACTER_NAMES.join('|')})(?:'s)?\\b`, 'g');
   result = result.replace(charRegex, (match) => {
     const idx = placeholders.length;
@@ -626,7 +695,6 @@ function formatSentenceHtml(sentence, vocabObj) {
     return `__PH_${idx}__`;
   });
 
-  // 2. 어려운 어휘 치환
   if (vocabObj) {
     const words = Object.keys(vocabObj).sort((a, b) => b.length - a.length);
     words.forEach(w => {
@@ -641,7 +709,6 @@ function formatSentenceHtml(sentence, vocabObj) {
     });
   }
 
-  // 플레이스홀더 복원
   placeholders.forEach((html, i) => {
     result = result.replace(`__PH_${i}__`, html);
   });
@@ -687,7 +754,7 @@ function renderStory() {
           </div>
           <div class="sentence-ko ${showAllKo ? '' : 'hidden'}" id="sent-ko-${idx}">
             <div>${s.ko}</div>
-            ${s.note ? `<div style="margin-top:6px;padding:6px 9px;background:#fefce8;border-left:3px solid #eab308;border-radius:6px;font-size:12.5px;color:#854d0e;">${s.note}</div>` : ''}
+            ${s.note ? `<div class="nuance-note">${s.note}</div>` : ''}
           </div>
         </div>
       </div>
@@ -711,6 +778,7 @@ function renderStory() {
     </div>
   `).join('');
 
+  // ★ 퀴즈 + 클릭 시 정답/오답 피드백 메시지 복원
   const qList = document.getElementById('quizList');
   qList.innerHTML = (lvData.quiz || []).map((q, qIdx) => `
     <div class="quiz-item">
@@ -720,21 +788,79 @@ function renderStory() {
           <button class="quiz-opt" onclick="checkQuiz(this, ${qIdx}, ${oIdx}, ${q.ans})">${oIdx + 1}. ${opt}</button>
         `).join('')}
       </div>
+      <div id="quiz-fb-${qIdx}" class="quiz-feedback hidden"></div>
     </div>
   `).join('');
 
-  const spList = document.getElementById('speakingList');
-  spList.innerHTML = (lvData.speaking || []).map(sp => `
-    <div class="speak-item">
-      <div>
-        <div style="font-weight:700;">"${sp.en}"</div>
-        <div style="font-size:12px;color:var(--muted);">${sp.ko}</div>
-      </div>
-      <button class="btn" onclick="speakText('${sp.en.replace(/'/g, "\\'")}')">🔊 따라듣기</button>
-    </div>
-  `).join('');
-
+  renderSpeakingList(lvData.speaking || []);
   renderCompleteBar();
+}
+
+function renderSpeakingList(speakingArr) {
+  const spList = document.getElementById('speakingList');
+  spList.innerHTML = speakingArr.map((sp, idx) => {
+    const isRec = activeRecIdx === idx;
+    const hasAudio = !!recordedAudioUrls[idx];
+    return `
+      <div class="speak-item">
+        <div style="flex:1;min-width:200px;">
+          <div style="font-weight:700;">"${sp.en}"</div>
+          <div style="font-size:12px;color:var(--muted);">${sp.ko}</div>
+        </div>
+        <div class="speak-btns">
+          <button class="btn" onclick="speakText('${sp.en.replace(/'/g, "\\'")}')">🔊 원어민 듣기</button>
+          <button class="btn btn-rec ${isRec ? 'recording' : ''}" onclick="toggleRecord(${idx})">
+            ${isRec ? '⏹ 녹음 중지' : '🎤 녹음하기'}
+          </button>
+          ${hasAudio ? `<button class="btn btn-play-rec" onclick="playMyRecording(${idx})">▶️ 내 발음 듣기</button>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function toggleRecord(idx) {
+  const story = stories[currentStoryIdx];
+  const userObj = USERS.find(u => u.id === currentUser);
+  const speakingArr = story.levels[userObj.level].speaking || [];
+
+  if (activeRecorder && activeRecorder.state === 'recording') {
+    activeRecorder.stop();
+    return;
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const chunks = [];
+    const recorder = new MediaRecorder(stream);
+    activeRecorder = recorder;
+    activeRecIdx = idx;
+
+    recorder.ondataavailable = e => {
+      if (e.data.size > 0) chunks.push(e.data);
+    };
+
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, { type: 'audio/webm' });
+      recordedAudioUrls[idx] = URL.createObjectURL(blob);
+      stream.getTracks().forEach(track => track.stop());
+      activeRecorder = null;
+      activeRecIdx = null;
+      renderSpeakingList(speakingArr);
+    };
+
+    recorder.start();
+    renderSpeakingList(speakingArr);
+  } catch (err) {
+    alert('마이크 권한을 허용해 주셔야 녹음 기능을 사용할 수 있습니다.');
+  }
+}
+
+function playMyRecording(idx) {
+  const url = recordedAudioUrls[idx];
+  if (!url) return;
+  const audio = new Audio(url);
+  audio.play();
 }
 
 function toggleSingleKo(idx) {
@@ -749,11 +875,22 @@ function toggleAllKo() {
   });
 }
 
+// ★ 퀴즈 정답/오답 메시지 출력
 function checkQuiz(btn, qIdx, selectedIdx, correctIdx) {
   const parent = btn.parentElement;
   parent.querySelectorAll('.quiz-opt').forEach(b => b.classList.remove('correct', 'wrong'));
-  if (selectedIdx === correctIdx) btn.classList.add('correct');
-  else btn.classList.add('wrong');
+  const fbEl = document.getElementById(`quiz-fb-${qIdx}`);
+  fbEl.classList.remove('hidden', 'ok', 'no');
+
+  if (selectedIdx === correctIdx) {
+    btn.classList.add('correct');
+    fbEl.classList.add('ok');
+    fbEl.textContent = '🎉 정답입니다! 스토리 내용을 아주 정확하게 이해했네요!';
+  } else {
+    btn.classList.add('wrong');
+    fbEl.classList.add('no');
+    fbEl.textContent = '😅 아쉬워요! 위 본문을 한 번 더 살펴보고 다시 눌러볼까요?';
+  }
 }
 
 function speakText(text) {
