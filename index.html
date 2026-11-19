@@ -15,7 +15,6 @@
       --primary-soft: #eff6ff;
       --success: #10b981;
       --success-soft: #ecfdf5;
-      --warn: #f59e0b;
       --danger: #ef4444;
     }
     * { box-sizing: border-box; }
@@ -40,23 +39,9 @@
       gap: 8px;
       margin-bottom: 14px;
     }
-    .brand h1 {
-      margin: 0;
-      font-size: 18px;
-      font-weight: 800;
-      color: #0f172a;
-    }
-    .brand p {
-      margin: 2px 0 0;
-      font-size: 12px;
-      color: var(--muted);
-    }
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
+    .brand h1 { margin: 0; font-size: 18px; font-weight: 800; color: #0f172a; }
+    .brand p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+    .header-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
     .status-badge {
       font-size: 11.5px;
       padding: 4px 9px;
@@ -65,10 +50,7 @@
       color: #475569;
       font-weight: 600;
     }
-    .status-badge.ok {
-      background: var(--success-soft);
-      color: #047857;
-    }
+    .status-badge.ok { background: var(--success-soft); color: #047857; }
     .icon-btn {
       background: #fff;
       border: 1px solid var(--border);
@@ -80,19 +62,10 @@
       color: var(--text);
     }
     .icon-btn:hover { background: #f1f5f9; }
-    .icon-btn.active-nav {
-      background: #0f172a;
-      color: #fff;
-      border-color: #0f172a;
-    }
+    .icon-btn.active-nav { background: #0f172a; color: #fff; border-color: #0f172a; }
 
     /* 사용자 선택 탭 */
-    .user-tabs {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      margin-bottom: 12px;
-    }
+    .user-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
     .user-tab {
       background: var(--card);
       border: 2px solid var(--border);
@@ -101,21 +74,10 @@
       text-align: center;
       cursor: pointer;
       transition: all 0.15s;
-      position: relative;
     }
-    .user-tab.active {
-      border-color: var(--primary);
-      background: var(--primary-soft);
-    }
-    .user-tab .name {
-      font-size: 14.5px;
-      font-weight: 800;
-      display: block;
-    }
-    .user-tab .desc {
-      font-size: 11px;
-      color: var(--muted);
-    }
+    .user-tab.active { border-color: var(--primary); background: var(--primary-soft); }
+    .user-tab .name { font-size: 14.5px; font-weight: 800; display: block; }
+    .user-tab .desc { font-size: 11px; color: var(--muted); }
     .user-tab .done-pill {
       display: inline-block;
       margin-top: 3px;
@@ -128,13 +90,7 @@
     }
 
     /* 날짜/회차 선택 바 */
-    .episode-bar {
-      display: flex;
-      gap: 7px;
-      overflow-x: auto;
-      padding-bottom: 6px;
-      margin-bottom: 12px;
-    }
+    .episode-bar { display: flex; gap: 7px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 12px; }
     .ep-chip {
       flex: 0 0 auto;
       background: #fff;
@@ -145,19 +101,9 @@
       cursor: pointer;
       text-align: left;
     }
-    .ep-chip.active {
-      background: #0f172a;
-      color: #fff;
-      border-color: #0f172a;
-    }
-    .ep-chip .ep-date {
-      font-size: 10.5px;
-      opacity: 0.75;
-      display: block;
-    }
-    .ep-chip .ep-title {
-      font-weight: 700;
-    }
+    .ep-chip.active { background: #0f172a; color: #fff; border-color: #0f172a; }
+    .ep-chip .ep-date { font-size: 10.5px; opacity: 0.75; display: block; }
+    .ep-chip .ep-title { font-weight: 700; }
 
     /* 메인 카드 */
     .card {
@@ -178,21 +124,9 @@
       padding-bottom: 10px;
       border-bottom: 1px solid var(--border);
     }
-    .story-title {
-      margin: 0;
-      font-size: 17px;
-      font-weight: 800;
-    }
-    .story-meta {
-      font-size: 11.5px;
-      color: var(--muted);
-      margin-top: 2px;
-    }
-    .controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 5px;
-    }
+    .story-title { margin: 0; font-size: 17px; font-weight: 800; }
+    .story-meta { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+    .controls { display: flex; flex-wrap: wrap; gap: 5px; }
     .btn {
       border: 1px solid var(--border);
       background: #fff;
@@ -207,35 +141,54 @@
       gap: 4px;
     }
     .btn:hover { background: #f1f5f9; }
-    .btn-primary {
-      background: var(--primary);
-      color: #fff;
-      border-color: var(--primary);
-    }
+    .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
     .btn-primary:hover { background: #2563eb; }
 
-    /* 문장별 박스형 카드 (요청 1, 2번 반영) */
-    .sentence-list {
+    /* 컬러 범례 안내 바 */
+    .legend-bar {
       display: flex;
-      flex-direction: column;
-      gap: 8px;
+      gap: 12px;
+      font-size: 11.5px;
+      color: var(--muted);
+      margin-bottom: 10px;
+      flex-wrap: wrap;
     }
+    .legend-item { display: inline-flex; align-items: center; gap: 4px; }
+
+    /* 문장별 박스형 카드 + 상황 이미지 박스 */
+    .sentence-list { display: flex; flex-direction: column; gap: 9px; }
     .sentence-card {
       background: #f8fafc;
       border: 1px solid var(--border);
-      border-radius: 11px;
-      padding: 11px 13px;
+      border-radius: 12px;
+      padding: 10px 12px;
       transition: all 0.15s;
     }
-    .sentence-card.speaking {
-      background: #fef9c3;
-      border-color: #eab308;
+    .sentence-card.speaking { background: #fef9c3; border-color: #eab308; }
+    .sentence-row {
+      display: flex;
+      align-items: center;
+      gap: 11px;
     }
+    .scene-visual {
+      width: 48px;
+      height: 48px;
+      border-radius: 11px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 25px;
+      flex-shrink: 0;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+    .sentence-body { flex: 1; min-width: 0; }
     .sentence-top {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      gap: 10px;
+      gap: 8px;
     }
     .sentence-en {
       font-size: 15.5px;
@@ -245,19 +198,25 @@
       cursor: pointer;
       flex: 1;
     }
+    /* ★ 등장인물 이름 전용 컬러 하이라이트 */
+    .char-name {
+      color: #7c3aed;
+      background: #f3e8ff;
+      font-weight: 800;
+      padding: 1px 5px;
+      border-radius: 5px;
+    }
+    /* ★ 어려운 어휘 파란색 하이라이트 */
     .vocab-highlight {
       background: #dbeafe;
       color: #1d4ed8;
-      padding: 0 3px;
+      padding: 0 4px;
       border-radius: 4px;
       border-bottom: 1.5px dashed #3b82f6;
       cursor: pointer;
+      font-weight: 700;
     }
-    .sentence-actions {
-      display: flex;
-      gap: 4px;
-      flex-shrink: 0;
-    }
+    .sentence-actions { display: flex; gap: 4px; flex-shrink: 0; }
     .mini-btn {
       background: #fff;
       border: 1px solid #cbd5e1;
@@ -278,44 +237,30 @@
     }
     .hidden { display: none !important; }
 
-    /* 섹션 제목 */
-    .sec-title {
-      font-size: 14.5px;
-      font-weight: 800;
-      margin: 0 0 10px;
-      display: flex;
-      align-items: center;
-      gap: 5px;
+    /* 단어 터치 시 즉석 뜻 토스트 바 */
+    .word-toast {
+      position: fixed;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #0f172a;
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 12px;
+      font-size: 13.5px;
+      z-index: 9999;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+      max-width: 92vw;
+      text-align: center;
     }
 
-    /* 단어 & 핵심 구문 */
-    .vocab-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-      gap: 7px;
-    }
-    .vocab-item {
-      background: #f8fafc;
-      border: 1px solid var(--border);
-      border-radius: 9px;
-      padding: 8px 11px;
-      cursor: pointer;
-    }
-    .vocab-word {
-      font-weight: 800;
-      color: var(--primary);
-      font-size: 14px;
-    }
-    .vocab-mean {
-      font-size: 12px;
-      color: var(--muted);
-      margin-top: 2px;
-    }
-    .phrase-list {
-      display: flex;
-      flex-direction: column;
-      gap: 7px;
-    }
+    /* 섹션 제목 & 기타 카드 */
+    .sec-title { font-size: 14.5px; font-weight: 800; margin: 0 0 10px; display: flex; align-items: center; gap: 5px; }
+    .vocab-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 7px; }
+    .vocab-item { background: #f8fafc; border: 1px solid var(--border); border-radius: 9px; padding: 8px 11px; cursor: pointer; }
+    .vocab-word { font-weight: 800; color: var(--primary); font-size: 14px; }
+    .vocab-mean { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .phrase-list { display: flex; flex-direction: column; gap: 7px; }
     .phrase-item {
       background: #f8fafc;
       border: 1px solid var(--border);
@@ -328,24 +273,10 @@
       cursor: pointer;
       font-size: 13.5px;
     }
-
-    /* 퀴즈 */
-    .quiz-item {
-      margin-bottom: 14px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid var(--border);
-    }
+    .quiz-item { margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
     .quiz-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-    .quiz-q {
-      font-weight: 700;
-      font-size: 14px;
-      margin-bottom: 7px;
-    }
-    .quiz-opts {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-    }
+    .quiz-q { font-weight: 700; font-size: 14px; margin-bottom: 7px; }
+    .quiz-opts { display: flex; flex-direction: column; gap: 5px; }
     .quiz-opt {
       text-align: left;
       padding: 8px 11px;
@@ -355,19 +286,8 @@
       cursor: pointer;
       font-size: 13px;
     }
-    .quiz-opt.correct {
-      background: var(--success-soft);
-      border-color: var(--success);
-      color: #065f46;
-      font-weight: 700;
-    }
-    .quiz-opt.wrong {
-      background: #fef2f2;
-      border-color: var(--danger);
-      color: #991b1b;
-    }
-
-    /* 스피킹 */
+    .quiz-opt.correct { background: var(--success-soft); border-color: var(--success); color: #065f46; font-weight: 700; }
+    .quiz-opt.wrong { background: #fef2f2; border-color: var(--danger); color: #991b1b; }
     .speak-item {
       background: #f8fafc;
       border: 1px solid var(--border);
@@ -380,14 +300,7 @@
       gap: 8px;
       font-size: 14px;
     }
-
-    /* 완료 체크 바 & 축하 배너 */
-    .complete-bar {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      margin-top: 10px;
-    }
+    .complete-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
     .step-btn {
       padding: 11px 6px;
       border-radius: 10px;
@@ -398,11 +311,7 @@
       cursor: pointer;
       text-align: center;
     }
-    .step-btn.done {
-      background: var(--success-soft);
-      border-color: var(--success);
-      color: #065f46;
-    }
+    .step-btn.done { background: var(--success-soft); border-color: var(--success); color: #065f46; }
     .celebration-banner {
       margin-top: 12px;
       padding: 12px 14px;
@@ -412,36 +321,12 @@
       font-weight: 800;
       font-size: 14px;
       text-align: center;
-      box-shadow: 0 3px 10px rgba(16, 185, 129, 0.25);
     }
-
-    /* 학습 현황표 테이블 */
-    .board-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-      text-align: center;
-    }
-    .board-table th, .board-table td {
-      border: 1px solid var(--border);
-      padding: 9px 6px;
-    }
-    .board-table th {
-      background: #f1f5f9;
-      font-weight: 800;
-    }
-    .cell-done {
-      background: var(--success-soft);
-      color: #047857;
-      font-weight: 800;
-    }
-    .cell-part {
-      background: #fef3c7;
-      color: #b45309;
-      font-weight: 700;
-    }
-
-    /* 모달 */
+    .board-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: center; }
+    .board-table th, .board-table td { border: 1px solid var(--border); padding: 9px 6px; }
+    .board-table th { background: #f1f5f9; font-weight: 800; }
+    .cell-done { background: var(--success-soft); color: #047857; font-weight: 800; }
+    .cell-part { background: #fef3c7; color: #b45309; font-weight: 700; }
     .modal-backdrop {
       display: none;
       position: fixed;
@@ -451,23 +336,9 @@
       overflow-y: auto;
       padding: 20px 12px;
     }
-    .modal-box {
-      max-width: 520px;
-      margin: 0 auto;
-      background: #fff;
-      border-radius: 14px;
-      padding: 20px;
-    }
-    .modal-box.wide {
-      max-width: 860px;
-    }
-    .input-field {
-      width: 100%;
-      padding: 9px 11px;
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
-      font-size: 13.5px;
-    }
+    .modal-box { max-width: 520px; margin: 0 auto; background: #fff; border-radius: 14px; padding: 20px; }
+    .modal-box.wide { max-width: 860px; }
+    .input-field { width: 100%; padding: 9px 11px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13.5px; }
   </style>
 </head>
 <body>
@@ -494,10 +365,8 @@
     </div>
   </header>
 
-  <!-- 사용자 탭 -->
   <div class="user-tabs" id="userTabs"></div>
 
-  <!-- 뷰 1: 오늘의 학습 -->
   <div id="studyView">
     <div class="episode-bar" id="episodeBar"></div>
 
@@ -513,6 +382,12 @@
           <button class="btn" onclick="cycleSpeed()" id="speedBtn">속도 1.0x</button>
           <button class="btn" onclick="toggleAllKo()" id="allKoBtn">🇰🇷 전체 해석 보기</button>
         </div>
+      </div>
+
+      <div class="legend-bar">
+        <span class="legend-item"><span class="char-name">인물이름</span> 등장인물</span>
+        <span class="legend-item"><span class="vocab-highlight">핵심단어</span> 터치하면 뜻 & 발음</span>
+        <span class="legend-item">🖼️ 왼쪽 그림으로 상황 유추하기</span>
       </div>
 
       <div class="sentence-list" id="sentenceList"></div>
@@ -547,7 +422,6 @@
     </div>
   </div>
 
-  <!-- 뷰 2: 가족 학습 현황표 (요청 3번 반영) -->
   <div id="boardView" class="hidden">
     <div class="card">
       <h3 class="sec-title">📊 우리 가족 날짜별 학습 완료 현황표</h3>
@@ -559,7 +433,8 @@
   </div>
 </div>
 
-<!-- 설정 모달 -->
+<div id="wordToast" class="word-toast hidden"></div>
+
 <div id="settingsModal" class="modal-backdrop">
   <div class="modal-box">
     <h3 style="margin-top:0;">⚙️ 구글 시트 웹앱 연결 설정</h3>
@@ -572,7 +447,6 @@
   </div>
 </div>
 
-<!-- 관리자 검수 모달 -->
 <div id="reviewModal" class="modal-backdrop">
   <div class="modal-box wide">
     <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:14px;">
@@ -586,12 +460,18 @@
 
 <script>
 // ★ 여기에 Apps Script 웹앱 주소를 한 번만 넣어두면 모든 기기에서 자동 연결됩니다!
-const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycby7pqe1UeemP6U6QNUacfO65hF-7g93Eh9aj1N-Rjis1WECHgAgYGQF3aWiB4Ocm9Ye6A/exec";
+const DEFAULT_GAS_URL = "";
 
 const USERS = [
-  { id: 'seoa', name: '서아', level: 'lv1', desc: '초3 · 왕초보 5문장' },
+  { id: 'seoa', name: '서아', level: 'lv1', desc: '초3 · 왕초보 동화형' },
   { id: 'seoyul', name: '서율', level: 'lv2', desc: '초6 · 1C 스토리' },
   { id: 'mom', name: '엄마', level: 'lv3', desc: '성인 · A2~B1 원서형' }
+];
+
+const CHARACTER_NAMES = [
+  'Conan', 'Ran', 'Kogoro', 'Ai', 'Agasa', 'Sonoko', 'Heiji', 'Kaito', 'Megure',
+  'Doraemon', 'Jingu', 'Iseul', 'Tung', 'Bisil', 'Youngmin',
+  'Rintaro', 'Kaoruko', 'Shohei', 'Subaru', 'Saku'
 ];
 
 let currentUser = localStorage.getItem('selected_user') || 'seoa';
@@ -712,16 +592,69 @@ function selectEpisode(idx) {
   renderStory();
 }
 
-function highlightVocabInText(sentence, vocabObj) {
-  if (!vocabObj) return sentence;
+// 문장 내용에 맞는 직관적 상황 아이콘(이모지 일러스트) 자동 매칭
+function getSceneIcon(sentenceObj) {
+  if (sentenceObj.icon) return sentenceObj.icon;
+  const t = sentenceObj.en.toLowerCase();
+  if (t.includes('bread') || t.includes('loaf') || t.includes('slice')) return '🍞';
+  if (t.includes('cake') || t.includes('bakery') || t.includes('patisserie') || t.includes('pastr')) return '🍰';
+  if (t.includes('diamond') || t.includes('jewel') || t.includes('gem')) return '💎';
+  if (t.includes('mirror') || t.includes('reflect')) return '🪞';
+  if (t.includes('test') || t.includes('exam') || t.includes('notebook') || t.includes('textbook') || t.includes('study')) return '📝';
+  if (t.includes('stomach') || t.includes('indigestion') || t.includes('bathroom') || t.includes('restroom')) return '😣';
+  if (t.includes('laugh') || t.includes('smile') || t.includes('happy') || t.includes('joy')) return '😊';
+  if (t.includes('embarrassed') || t.includes('shame') || t.includes('red') || t.includes('hide') || t.includes('hid')) return '😳';
+  if (t.includes('thief') || t.includes('culprit') || t.includes('catch') || t.includes('police')) return '🕵️';
+  if (t.includes('flashlight') || t.includes('magnifying') || t.includes('clue') || t.includes('examine')) return '🔍';
+  if (t.includes('pocket') || t.includes('gadget') || t.includes('magic')) return '🔮';
+  if (t.includes('water') || t.includes('window')) return '🥤';
+  if (t.includes('note') || t.includes('letter')) return '💌';
+  if (t.includes('scary') || t.includes('fear') || t.includes('flinch') || t.includes('alarm')) return '😨';
+  return '📖';
+}
+
+// 등장인물 이름(보라색) + 핵심 어휘(파란색) 동시 하이라이트
+function formatSentenceHtml(sentence, vocabObj) {
   let result = sentence;
-  const words = Object.keys(vocabObj).sort((a, b) => b.length - a.length);
-  words.forEach(w => {
-    const escaped = w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(`\\b(${escaped}\\w*)\\b`, 'gi');
-    result = result.replace(regex, `<span class="vocab-highlight" title="${vocabObj[w]}">$1</span>`);
+  const placeholders = [];
+
+  // 1. 등장인물 이름 먼저 치환
+  const charRegex = new RegExp(`\\b(${CHARACTER_NAMES.join('|')})(?:'s)?\\b`, 'g');
+  result = result.replace(charRegex, (match) => {
+    const idx = placeholders.length;
+    placeholders.push(`<span class="char-name">${match}</span>`);
+    return `__PH_${idx}__`;
+  });
+
+  // 2. 어려운 어휘 치환
+  if (vocabObj) {
+    const words = Object.keys(vocabObj).sort((a, b) => b.length - a.length);
+    words.forEach(w => {
+      const escaped = w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`\\b(${escaped}\\w*)\\b`, 'gi');
+      result = result.replace(regex, (match) => {
+        const idx = placeholders.length;
+        const safeMean = vocabObj[w].replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        placeholders.push(`<span class="vocab-highlight" onclick="event.stopPropagation(); showWordPopup('${match}', '${safeMean}')">${match}</span>`);
+        return `__PH_${idx}__`;
+      });
+    });
+  }
+
+  // 플레이스홀더 복원
+  placeholders.forEach((html, i) => {
+    result = result.replace(`__PH_${i}__`, html);
   });
   return result;
+}
+
+function showWordPopup(word, meaning) {
+  speakText(word);
+  const toast = document.getElementById('wordToast');
+  toast.innerHTML = `<strong>🔊 ${word}</strong> : ${meaning}`;
+  toast.classList.remove('hidden');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => toast.classList.add('hidden'), 3200);
 }
 
 function renderStory() {
@@ -739,22 +672,28 @@ function renderStory() {
     return;
   }
 
-  // 1. 문장별 박스형 카드 + 개별 한글해석 버튼
   const sList = document.getElementById('sentenceList');
   sList.innerHTML = lvData.sentences.map((s, idx) => `
     <div class="sentence-card" id="sent-card-${idx}">
-      <div class="sentence-top">
-        <div class="sentence-en" onclick="speakSingle(${idx})">${highlightVocabInText(s.en, lvData.vocab)}</div>
-        <div class="sentence-actions">
-          <button class="mini-btn" onclick="speakSingle(${idx})">🔊 듣기</button>
-          <button class="mini-btn" onclick="toggleSingleKo(${idx})">한글해석</button>
+      <div class="sentence-row">
+        <div class="scene-visual" title="상황 그림">${getSceneIcon(s)}</div>
+        <div class="sentence-body">
+          <div class="sentence-top">
+            <div class="sentence-en" onclick="speakSingle(${idx})">${formatSentenceHtml(s.en, lvData.vocab)}</div>
+            <div class="sentence-actions">
+              <button class="mini-btn" onclick="speakSingle(${idx})">🔊 듣기</button>
+              <button class="mini-btn" onclick="toggleSingleKo(${idx})">한글해석</button>
+            </div>
+          </div>
+          <div class="sentence-ko ${showAllKo ? '' : 'hidden'}" id="sent-ko-${idx}">
+            <div>${s.ko}</div>
+            ${s.note ? `<div style="margin-top:6px;padding:6px 9px;background:#fefce8;border-left:3px solid #eab308;border-radius:6px;font-size:12.5px;color:#854d0e;">${s.note}</div>` : ''}
+          </div>
         </div>
       </div>
-      <div class="sentence-ko ${showAllKo ? '' : 'hidden'}" id="sent-ko-${idx}">${s.ko}</div>
     </div>
   `).join('');
 
-  // 2. 핵심 어휘
   const vGrid = document.getElementById('vocabGrid');
   const vocabEntries = Object.entries(lvData.vocab || {});
   vGrid.innerHTML = vocabEntries.map(([word, mean]) => `
@@ -764,7 +703,6 @@ function renderStory() {
     </div>
   `).join('');
 
-  // 3. 핵심 표현
   const pList = document.getElementById('phraseList');
   pList.innerHTML = (lvData.phrases || []).map(p => `
     <div class="phrase-item" onclick="speakText('${p.en.replace(/'/g, "\\'")}')">
@@ -773,7 +711,6 @@ function renderStory() {
     </div>
   `).join('');
 
-  // 4. 퀴즈
   const qList = document.getElementById('quizList');
   qList.innerHTML = (lvData.quiz || []).map((q, qIdx) => `
     <div class="quiz-item">
@@ -786,7 +723,6 @@ function renderStory() {
     </div>
   `).join('');
 
-  // 5. 스피킹
   const spList = document.getElementById('speakingList');
   spList.innerHTML = (lvData.speaking || []).map(sp => `
     <div class="speak-item">
@@ -816,14 +752,10 @@ function toggleAllKo() {
 function checkQuiz(btn, qIdx, selectedIdx, correctIdx) {
   const parent = btn.parentElement;
   parent.querySelectorAll('.quiz-opt').forEach(b => b.classList.remove('correct', 'wrong'));
-  if (selectedIdx === correctIdx) {
-    btn.classList.add('correct');
-  } else {
-    btn.classList.add('wrong');
-  }
+  if (selectedIdx === correctIdx) btn.classList.add('correct');
+  else btn.classList.add('wrong');
 }
 
-// 음성 읽기 (TTS)
 function speakText(text) {
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
@@ -883,7 +815,6 @@ function cycleSpeed() {
   document.getElementById('speedBtn').textContent = `속도 ${speechRate}x`;
 }
 
-// 완료 체크 및 시트 동기화
 function renderCompleteBar() {
   const story = stories[currentStoryIdx];
   if (!story) return;
@@ -928,7 +859,6 @@ async function markStepDone(step) {
   }
 }
 
-// 가족 학습 현황표 렌더링
 function renderProgressBoard() {
   const table = document.getElementById('progressBoardTable');
   if (!stories.length) {
@@ -954,14 +884,12 @@ function renderProgressBoard() {
       <td style="text-align:left;">${st.title}</td>
       ${USERS.map(u => {
         const p = progressData[u.id]?.[st.date];
-        if (p && p.read && p.quiz && p.speak) {
-          return `<td class="cell-done">✅ 완료</td>`;
-        } else if (p && (p.read || p.quiz || p.speak)) {
+        if (p && p.read && p.quiz && p.speak) return `<td class="cell-done">✅ 완료</td>`;
+        if (p && (p.read || p.quiz || p.speak)) {
           const cnt = [p.read, p.quiz, p.speak].filter(Boolean).length;
           return `<td class="cell-part">⏳ ${cnt}/3 단계</td>`;
-        } else {
-          return `<td style="color:var(--muted);">미완료</td>`;
         }
+        return `<td style="color:var(--muted);">미완료</td>`;
       }).join('')}
     </tr>`;
   });
@@ -969,7 +897,6 @@ function renderProgressBoard() {
   table.innerHTML = html;
 }
 
-// 설정 모달
 function openSettings() {
   document.getElementById('gasUrlInput').value = getGasUrl();
   document.getElementById('settingsModal').style.display = 'block';
@@ -984,7 +911,6 @@ function saveSettings() {
   loadData();
 }
 
-// 관리자 검수 모달
 function renderReviewList() {
   const tabsEl = document.getElementById('reviewDateTabs');
   tabsEl.innerHTML = '';
@@ -1032,7 +958,7 @@ function renderStoryEditor(story) {
 
   html += `
     <div style="display:flex;justify-content:space-between;margin-top:14px;">
-      <button id="revDeleteBtn" class="btn" style="background:#ef4444;color:#fff;border-color:#ef4444;">🗑️ 이 날짜 삭제 (새 스토리로 재생성)</button>
+      <button id="revDeleteBtn" class="btn" style="background:#ef4444;color:#fff;border-color:#ef4444;">🗑️ 이 날짜 삭제</button>
       <button id="revSaveBtn" class="btn btn-primary">💾 수정 내용 시트에 저장</button>
     </div>
   `;
@@ -1057,7 +983,7 @@ function renderStoryEditor(story) {
   };
 
   document.getElementById('revDeleteBtn').onclick = async () => {
-    if (!confirm(`${story.date} 에피소드를 삭제할까요? 삭제하면 자동 생성기가 새 에피소드를 다시 만들어 채웁니다.`)) return;
+    if (!confirm(`${story.date} 에피소드를 삭제할까요?`)) return;
     await fetch(gasUrl, {
       method: 'POST',
       body: JSON.stringify({ action: 'delete_story', date: story.date })
