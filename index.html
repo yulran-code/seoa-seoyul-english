@@ -182,7 +182,7 @@
     }
     .legend-item { display: inline-flex; align-items: center; gap: 4px; }
 
-    /* 끊어읽기 진행 상태 배너 (서아 전용) */
+    /* 진행 상태 배너 */
     .chunk-status-bar {
       background: #fffbeb;
       border: 1.5px solid #fcd34d;
@@ -227,16 +227,15 @@
       font-size: 15.5px;
       font-weight: 600;
       color: #0f172a;
-      line-height: 1.75;
-      cursor: pointer;
+      line-height: 1.8;
       flex: 1;
-      min-width: 180px;
+      min-width: 190px;
     }
-    /* 파닉스 단계(Lv1) 개별 단어 터치 및 끊어읽기 하이라이트 */
     .word-token {
       display: inline-block;
       padding: 1px 3px;
       border-radius: 5px;
+      cursor: pointer;
       transition: all 0.12s;
     }
     .word-token:hover {
@@ -246,8 +245,15 @@
       background: #facc15 !important;
       color: #000 !important;
       font-weight: 900;
-      transform: scale(1.06);
-      box-shadow: 0 1px 4px rgba(234, 179, 8, 0.45);
+      box-shadow: 0 1px 3px rgba(234, 179, 8, 0.45);
+    }
+    /* 의미 단위 끊어읽기 구간 구분 슬래시 표시 */
+    .chunk-divider {
+      color: #94a3b8;
+      font-weight: 400;
+      font-size: 13px;
+      margin: 0 3px;
+      user-select: none;
     }
     .char-name {
       color: #7c3aed;
@@ -270,16 +276,21 @@
       background: #fff;
       border: 1px solid #cbd5e1;
       border-radius: 7px;
-      padding: 4px 8px;
+      padding: 4px 7px;
       font-size: 11px;
       font-weight: 700;
       color: #475569;
       cursor: pointer;
     }
     .mini-btn:hover { background: #e2e8f0; }
-    .mini-btn.step-read {
+    .mini-btn.word-mode {
+      background: #f0fdf4;
+      border-color: #86efac;
+      color: #15803d;
+    }
+    .mini-btn.chunk-mode {
       background: #fffbeb;
-      border-color: #f59e0b;
+      border-color: #fcd34d;
       color: #b45309;
     }
     .sentence-ko {
@@ -467,7 +478,7 @@
       </div>
 
       <div id="chunkStatusBar" class="chunk-status-bar hidden">
-        <span id="chunkStatusText">🐢 1단어씩 따라 읽기 중...</span>
+        <span id="chunkStatusText">읽기 연습 중...</span>
         <button class="mini-btn" onclick="stopSpeech()">중지</button>
       </div>
 
@@ -546,8 +557,8 @@
 const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycby7pqe1UeemP6U6QNUacfO65hF-7g93Eh9aj1N-Rjis1WECHgAgYGQF3aWiB4Ocm9Ye6A/exec";
 
 const USERS = [
-  { id: 'seoa', name: '서아', level: 'lv1', desc: '초3 · 1단어→2단어 끊어읽기' },
-  { id: 'seoyul', name: '서율', level: 'lv2', desc: '초6 · 1C 스토리' },
+  { id: 'seoa', name: '서아', level: 'lv1', desc: '초3 · 단어별/의미끊기' },
+  { id: 'seoyul', name: '서율', level: 'lv2', desc: '초6 · 의미끊기 스토리' },
   { id: 'mom', name: '엄마', level: 'lv3', desc: '성인 · A2~B1 원서형' }
 ];
 
@@ -556,6 +567,15 @@ const CHARACTER_NAMES = [
   'Doraemon', 'Jingu', 'Iseul', 'Tung', 'Bisil', 'Youngmin',
   'Rintaro', 'Kaoruko', 'Shohei', 'Subaru', 'Saku'
 ];
+
+// ★ 영어 의미 단위(Sense Group) 끊어읽기 기준 전치사·접속사·관계사 목록
+const CHUNK_BREAK_WORDS = new Set([
+  'in', 'on', 'at', 'to', 'for', 'with', 'from', 'into', 'about', 'around',
+  'by', 'under', 'behind', 'through', 'during', 'before', 'after', 'inside',
+  'outside', 'onto', 'across', 'against', 'without', 'toward', 'towards',
+  'and', 'but', 'so', 'or', 'because', 'when', 'if', 'while', 'until',
+  'once', 'as', 'that', 'which', 'who', 'where'
+]);
 
 let currentUser = localStorage.getItem('selected_user') || 'seoa';
 let stories = [];
@@ -649,7 +669,6 @@ function selectUser(userId) {
   recordedAudioUrls = {};
   currentUser = userId;
   localStorage.setItem('selected_user', userId);
-  // 서아(초3) 선택 시 기본 속도를 0.85x로 자동 맞춤
   speechRate = userId === 'seoa' ? 0.85 : 1.0;
   document.getElementById('speedBtn').textContent = `속도 ${speechRate}x`;
   renderUserTabs();
@@ -721,10 +740,45 @@ function getSceneIcon(sentenceObj) {
   return '📖';
 }
 
-// ★ 문장을 단어 단위로 쪼개어 [단어 터치 발음 + 끊어읽기 노란 하이라이트 + 인물색상 + 핵심단어] 모두 지원
-function formatSentenceHtml(sentence, vocabObj, sentIdx, isBeginner) {
+// ★ 문장을 [의미 단위 청크(Sense Group)]로 자동 분할하는 함수
+function computeSemanticChunks(words) {
+  const chunks = [];
+  let start = 0;
+
+  for (let i = 1; i < words.length; i++) {
+    const prevWord = words[i - 1];
+    const cleanCurr = words[i].toLowerCase().replace(/[^a-z']/g, '');
+    const currentChunkLen = i - start;
+
+    // 1. 앞 단어가 콤마(,)로 끝나면 무조건 끊기
+    const afterComma = prevWord.endsWith(',');
+    // 2. 전치사·접속사·관계사 앞에서 끊기 (단, 현재 덩어리가 최소 2단어 이상일 때)
+    const beforeBreakWord = CHUNK_BREAK_WORDS.has(cleanCurr) && currentChunkLen >= 2;
+    // 3. 한 덩어리가 5단어 이상 길어지면 자연스럽게 호흡 끊기
+    const tooLong = currentChunkLen >= 5;
+
+    if (afterComma || beforeBreakWord || tooLong) {
+      chunks.push({ start, end: i - 1 });
+      start = i;
+    }
+  }
+  if (start < words.length) {
+    // 마지막 조각이 1단어뿐이면 앞 덩어리에 자연스럽게 합침 (단독 전치사/부사 방지)
+    if (chunks.length > 0 && words.length - start === 1) {
+      chunks[chunks.length - 1].end = words.length - 1;
+    } else {
+      chunks.push({ start, end: words.length - 1 });
+    }
+  }
+  return chunks;
+}
+
+// ★ 단어 토큰화 + 의미 단위 끊어읽기 구간(/) 표시 + 인물색상 + 핵심단어 하이라이트
+function formatSentenceHtml(sentence, vocabObj, sentIdx, showChunkSlashes) {
   const rawWords = sentence.split(/\s+/);
   const vocabKeys = vocabObj ? Object.keys(vocabObj).sort((a, b) => b.length - a.length) : [];
+  const chunks = computeSemanticChunks(rawWords);
+  const chunkEndSet = new Set(chunks.slice(0, -1).map(c => c.end));
 
   return rawWords.map((rawWord, wIdx) => {
     const cleanAlpha = rawWord.replace(/[^a-zA-Z']/g, '');
@@ -743,16 +797,16 @@ function formatSentenceHtml(sentence, vocabObj, sentIdx, isBeginner) {
     let innerHtml = rawWord;
 
     if (isChar) {
-      innerHtml = `<span class="char-name">${rawWord}</span>`;
+      innerHtml = `<span class="char-name" onclick="event.stopPropagation(); speakWordOnly('${safeSpoken}', ${sentIdx}, ${wIdx})">${rawWord}</span>`;
     } else if (matchedVocabKey) {
       const safeMean = vocabObj[matchedVocabKey].replace(/'/g, "\\'").replace(/"/g, '&quot;');
       innerHtml = `<span class="vocab-highlight" onclick="event.stopPropagation(); showWordPopup('${safeSpoken}', '${safeMean}')">${rawWord}</span>`;
-    } else if (isBeginner && safeSpoken) {
-      // 초급(서아) 모드에서는 일반 단어를 눌러도 해당 단어 1개만 또박또박 발음!
+    } else if (safeSpoken) {
       innerHtml = `<span onclick="event.stopPropagation(); speakWordOnly('${safeSpoken}', ${sentIdx}, ${wIdx})">${rawWord}</span>`;
     }
 
-    return `<span class="word-token" id="wt-${sentIdx}-${wIdx}">${innerHtml}</span>`;
+    const slashHtml = (showChunkSlashes && chunkEndSet.has(wIdx)) ? `<span class="chunk-divider">/</span>` : '';
+    return `<span class="word-token" id="wt-${sentIdx}-${wIdx}">${innerHtml}</span>${slashHtml}`;
   }).join(' ');
 }
 
@@ -760,7 +814,7 @@ function speakWordOnly(word, sentIdx, wIdx) {
   stopSpeech();
   const el = document.getElementById(`wt-${sentIdx}-${wIdx}`);
   if (el) el.classList.add('active-word');
-  const u = createUtterance(word, Math.min(speechRate, 0.75));
+  const u = createUtterance(word, Math.min(speechRate, 0.78));
   u.onend = () => { if (el) el.classList.remove('active-word'); };
   window.speechSynthesis.speak(u);
 }
@@ -780,17 +834,18 @@ function renderStory() {
   if (!story) return;
 
   const userObj = USERS.find(u => u.id === currentUser);
-  const isBeginner = userObj.level === 'lv1';
+  const isChildMode = userObj.level === 'lv1' || userObj.level === 'lv2';
   const lvData = story.levels[userObj.level];
 
   document.getElementById('storyTitle').textContent = story.title;
   document.getElementById('storyMeta').textContent = `${story.date} · ${userObj.name} 맞춤 난이도 (${userObj.desc})`;
 
-  document.getElementById('legendBar').innerHTML = isBeginner
+  document.getElementById('legendBar').innerHTML = isChildMode
     ? `
-      <span class="legend-item">👆 <strong>단어 1개 터치</strong>: 그 단어만 발음</span>
-      <span class="legend-item">🐢 <strong>끊어읽기</strong>: 1단어 → 2단어 → 문장 연습</span>
+      <span class="legend-item">🔤 <strong>단어별</strong>: 한 단어씩 반복 연습</span>
+      <span class="legend-item">✂️ <strong>의미끊기</strong>: 의미 덩어리(/) 단위 연습</span>
       <span class="legend-item"><span class="char-name">인물이름</span> 등장인물</span>
+      <span class="legend-item"><span class="vocab-highlight">핵심단어</span> 터치 시 뜻</span>
     `
     : `
       <span class="legend-item"><span class="char-name">인물이름</span> 등장인물</span>
@@ -810,10 +865,13 @@ function renderStory() {
         <div class="scene-visual" title="상황 그림">${getSceneIcon(s)}</div>
         <div class="sentence-body">
           <div class="sentence-top">
-            <div class="sentence-en" onclick="speakSingle(${idx})">${formatSentenceHtml(s.en, lvData.vocab, idx, isBeginner)}</div>
+            <div class="sentence-en">${formatSentenceHtml(s.en, lvData.vocab, idx, isChildMode)}</div>
             <div class="sentence-actions">
-              ${isBeginner ? `<button class="mini-btn step-read" onclick="playStepByStep(${idx})">🐢 끊어읽기</button>` : ''}
-              <button class="mini-btn" onclick="speakSingle(${idx})">🔊 듣기</button>
+              ${isChildMode ? `
+                <button class="mini-btn word-mode" onclick="playWordByWord(${idx})">🔤 단어별</button>
+                <button class="mini-btn chunk-mode" onclick="playBySemanticChunks(${idx})">✂️ 의미끊기</button>
+              ` : ''}
+              <button class="mini-btn" onclick="speakSingle(${idx})">🔊 전체</button>
               <button class="mini-btn" onclick="toggleSingleKo(${idx})">한글해석</button>
             </div>
           </div>
@@ -856,12 +914,12 @@ function renderStory() {
     </div>
   `).join('');
 
-  renderSpeakingList(lvData.speaking || [], isBeginner);
+  renderSpeakingList(lvData.speaking || [], isChildMode);
   renderCompleteBar();
 }
 
-// ★ 파닉스·초급용 3단계 스캐폴딩 끊어읽기 (1단어씩 → 2단어 묶음 → 전체 문장)
-async function playStepByStep(sentIdx) {
+// ★ [독립 버튼 1] 단어별로만 1개씩 또박또박 듣고 따라하기
+async function playWordByWord(sentIdx) {
   stopSpeech();
   stepPlayCancel = false;
 
@@ -875,6 +933,7 @@ async function playStepByStep(sentIdx) {
   const statusText = document.getElementById('chunkStatusText');
   card.classList.add('speaking');
   statusBar.classList.remove('hidden');
+  statusText.textContent = '🔤 단어별 따라 읽기 중... (원하는 만큼 다시 눌러 연습하세요)';
 
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const speakPromise = (text, rate) => new Promise(resolve => {
@@ -885,44 +944,15 @@ async function playStepByStep(sentIdx) {
     window.speechSynthesis.speak(u);
   });
 
-  const highlightRange = (startIdx, endIdx) => {
-    document.querySelectorAll('.word-token').forEach(el => el.classList.remove('active-word'));
-    for (let i = startIdx; i <= endIdx; i++) {
-      const el = document.getElementById(`wt-${sentIdx}-${i}`);
-      if (el) el.classList.add('active-word');
-    }
-  };
-
-  // [1단계] 단어 1개씩 텀을 두고 또박또박 읽기
-  statusText.textContent = '🐢 [1/3단계] 한 단어씩 따라 읽어보세요!';
   for (let i = 0; i < words.length; i++) {
     if (stepPlayCancel) break;
-    highlightRange(i, i);
+    document.querySelectorAll('.word-token').forEach(el => el.classList.remove('active-word'));
+    const el = document.getElementById(`wt-${sentIdx}-${i}`);
+    if (el) el.classList.add('active-word');
+
     const clean = words[i].replace(/[^a-zA-Z']/g, '');
     if (clean) await speakPromise(clean, 0.65);
-    await sleep(650); // 아이가 따라 말할 틈
-  }
-
-  // [2단계] 2단어씩 묶어 읽기
-  if (!stepPlayCancel) {
-    statusText.textContent = '🚶 [2/3단계] 이제 두 단어씩 묶어서 읽어볼까요?';
-    await sleep(500);
-    for (let i = 0; i < words.length; i += 2) {
-      if (stepPlayCancel) break;
-      const end = Math.min(i + 1, words.length - 1);
-      highlightRange(i, end);
-      const chunkText = words.slice(i, end + 1).join(' ').replace(/[^a-zA-Z'\s]/g, '');
-      if (chunkText) await speakPromise(chunkText, 0.72);
-      await sleep(750);
-    }
-  }
-
-  // [3단계] 천천히 전체 문장 연결 읽기
-  if (!stepPlayCancel) {
-    statusText.textContent = '🏃 [3/3단계] 마지막으로 한 문장을 쭉 연결해요!';
-    highlightRange(0, words.length - 1);
-    await sleep(400);
-    await speakPromise(sentence, 0.75);
+    await sleep(950); // 아이가 한 단어씩 충분히 따라 말할 수 있는 0.95초 텀
   }
 
   document.querySelectorAll('.word-token').forEach(el => el.classList.remove('active-word'));
@@ -930,7 +960,53 @@ async function playStepByStep(sentIdx) {
   statusBar.classList.add('hidden');
 }
 
-function renderSpeakingList(speakingArr, isBeginner) {
+// ★ [독립 버튼 2] 의미 단위(Sense Group) 끊어읽기만 반복 연습하기
+async function playBySemanticChunks(sentIdx) {
+  stopSpeech();
+  stepPlayCancel = false;
+
+  const story = stories[currentStoryIdx];
+  const userObj = USERS.find(u => u.id === currentUser);
+  const sentence = story.levels[userObj.level].sentences[sentIdx].en;
+  const words = sentence.split(/\s+/);
+  const chunks = computeSemanticChunks(words);
+
+  const card = document.getElementById(`sent-card-${sentIdx}`);
+  const statusBar = document.getElementById('chunkStatusBar');
+  const statusText = document.getElementById('chunkStatusText');
+  card.classList.add('speaking');
+  statusBar.classList.remove('hidden');
+  statusText.textContent = '✂️ 의미 단위(/) 끊어읽기 연습 중...';
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const speakPromise = (text, rate) => new Promise(resolve => {
+    if (stepPlayCancel) return resolve();
+    const u = createUtterance(text, rate);
+    u.onend = () => resolve();
+    u.onerror = () => resolve();
+    window.speechSynthesis.speak(u);
+  });
+
+  for (let c = 0; c < chunks.length; c++) {
+    if (stepPlayCancel) break;
+    const { start, end } = chunks[c];
+    document.querySelectorAll('.word-token').forEach(el => el.classList.remove('active-word'));
+    for (let i = start; i <= end; i++) {
+      const el = document.getElementById(`wt-${sentIdx}-${i}`);
+      if (el) el.classList.add('active-word');
+    }
+
+    const chunkText = words.slice(start, end + 1).join(' ').replace(/[^a-zA-Z'\s]/g, '');
+    if (chunkText) await speakPromise(chunkText, Math.min(speechRate, 0.78));
+    await sleep(1050); // 의미 덩어리를 따라 말할 수 있는 1.05초 텀
+  }
+
+  document.querySelectorAll('.word-token').forEach(el => el.classList.remove('active-word'));
+  card.classList.remove('speaking');
+  statusBar.classList.add('hidden');
+}
+
+function renderSpeakingList(speakingArr, isChildMode) {
   const spList = document.getElementById('speakingList');
   spList.innerHTML = speakingArr.map((sp, idx) => {
     const isRec = activeRecIdx === idx;
@@ -942,8 +1018,8 @@ function renderSpeakingList(speakingArr, isBeginner) {
           <div style="font-size:12px;color:var(--muted);">${sp.ko}</div>
         </div>
         <div class="speak-btns">
-          <button class="btn" onclick="speakText('${sp.en.replace(/'/g, "\\'")}', ${isBeginner ? 0.65 : 'null'})">
-            ${isBeginner ? '🐢 아주 천천히 듣기' : '🔊 원어민 듣기'}
+          <button class="btn" onclick="speakText('${sp.en.replace(/'/g, "\\'")}', ${isChildMode ? 0.72 : 'null'})">
+            ${isChildMode ? '🐢 천천히 듣기' : '🔊 원어민 듣기'}
           </button>
           <button class="btn btn-rec ${isRec ? 'recording' : ''}" onclick="toggleRecord(${idx})">
             ${isRec ? '⏹ 녹음 중지' : '🎤 녹음하기'}
@@ -958,7 +1034,7 @@ function renderSpeakingList(speakingArr, isBeginner) {
 async function toggleRecord(idx) {
   const story = stories[currentStoryIdx];
   const userObj = USERS.find(u => u.id === currentUser);
-  const isBeginner = userObj.level === 'lv1';
+  const isChildMode = userObj.level === 'lv1' || userObj.level === 'lv2';
   const speakingArr = story.levels[userObj.level].speaking || [];
 
   if (activeRecorder && activeRecorder.state === 'recording') {
@@ -983,11 +1059,11 @@ async function toggleRecord(idx) {
       stream.getTracks().forEach(track => track.stop());
       activeRecorder = null;
       activeRecIdx = null;
-      renderSpeakingList(speakingArr, isBeginner);
+      renderSpeakingList(speakingArr, isChildMode);
     };
 
     recorder.start();
-    renderSpeakingList(speakingArr, isBeginner);
+    renderSpeakingList(speakingArr, isChildMode);
   } catch (err) {
     alert('마이크 권한을 허용해 주셔야 녹음 기능을 사용할 수 있습니다.');
   }
@@ -1029,7 +1105,6 @@ function checkQuiz(btn, qIdx, selectedIdx, correctIdx) {
   }
 }
 
-// 고음질 원어민 음성 자동 선택 + 0.55x 초저속 지원
 function getBestEnglishVoice() {
   const voices = window.speechSynthesis.getVoices();
   if (!voices.length) return null;
@@ -1104,7 +1179,6 @@ function stopSpeech() {
 }
 
 function cycleSpeed() {
-  // ★ 초저속 0.55x 포함
   const speeds = [1.0, 0.85, 0.7, 0.55];
   speechRate = speeds[(speeds.indexOf(speechRate) + 1) % speeds.length];
   document.getElementById('speedBtn').textContent = `속도 ${speechRate}x`;
