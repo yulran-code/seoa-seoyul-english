@@ -227,7 +227,7 @@
       font-size: 15.5px;
       font-weight: 600;
       color: #0f172a;
-      line-height: 1.8;
+      line-height: 1.85;
       flex: 1;
       min-width: 190px;
     }
@@ -244,6 +244,19 @@
       color: #000 !important;
       font-weight: 900;
       box-shadow: 0 1px 3px rgba(234, 179, 8, 0.45);
+    }
+    /* ★ 관리자 검수 모드(?mode=review) 전용 끊어읽기 시각 배지 */
+    .review-chunk-slash {
+      display: inline-block;
+      margin: 0 4px;
+      padding: 0 5px;
+      background: #fef3c7;
+      color: #d97706;
+      border: 1px solid #fcd34d;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 900;
+      user-select: none;
     }
     .char-name {
       color: #7c3aed;
@@ -420,14 +433,14 @@
       padding: 20px 12px;
     }
     .modal-box { max-width: 520px; margin: 0 auto; background: #fff; border-radius: 14px; padding: 20px; }
-    .modal-box.wide { max-width: 860px; }
+    .modal-box.wide { max-width: 920px; }
     .input-field { width: 100%; padding: 9px 11px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13.5px; }
   </style>
 </head>
 <body>
 
 <div id="reviewTopBar" class="hidden" style="background:#1e293b;color:#f8fafc;padding:10px 14px;font-size:13px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:9999;">
-  <div><strong>🛠️ 관리자 콘텐츠 검수 모드</strong> <span style="font-size:11.5px;color:#94a3b8;margin-left:6px;">미래 예약분 포함 열람 · 직접 수정/삭제</span></div>
+  <div><strong>🛠️ 관리자 콘텐츠 검수 모드</strong> <span style="font-size:11.5px;color:#fcd34d;margin-left:6px;">[ / ] 끊어읽기 구간 표시 중</span></div>
   <div style="display:flex;gap:6px;">
     <button id="openReviewModalBtn" style="background:#3b82f6;color:#fff;border:none;padding:5px 11px;border-radius:6px;cursor:pointer;font-weight:700;font-size:12px;">📋 전체 회차 검수/수정</button>
     <a id="exitReviewLink" href="#" style="background:#475569;color:#fff;text-decoration:none;padding:5px 10px;border-radius:6px;font-size:12px;">일반 화면</a>
@@ -781,9 +794,12 @@ function getSentenceChunks(sentenceObj) {
   return chunks;
 }
 
-function formatSentenceHtml(sentence, vocabObj, sentIdx) {
-  const rawWords = sentence.split(/\s+/);
+// ★ 일반 학습 화면에서는 깔끔한 문장만, 관리자 검수 모드(?mode=review)에서는 노란색 [/] 배지 표시!
+function formatSentenceHtml(sentenceObj, vocabObj, sentIdx) {
+  const rawWords = sentenceObj.en.split(/\s+/);
   const vocabKeys = vocabObj ? Object.keys(vocabObj).sort((a, b) => b.length - a.length) : [];
+  const chunks = getSentenceChunks(sentenceObj);
+  const chunkEndSet = new Set(chunks.slice(0, -1).map(c => c.end));
 
   return rawWords.map((rawWord, wIdx) => {
     const cleanAlpha = rawWord.replace(/[^a-zA-Z']/g, '');
@@ -810,7 +826,11 @@ function formatSentenceHtml(sentence, vocabObj, sentIdx) {
       innerHtml = `<span onclick="event.stopPropagation(); speakWordOnly('${safeSpoken}', ${sentIdx}, ${wIdx})">${rawWord}</span>`;
     }
 
-    return `<span class="word-token" id="wt-${sentIdx}-${wIdx}">${innerHtml}</span>`;
+    const slashHtml = (isReviewMode && chunkEndSet.has(wIdx))
+      ? `<span class="review-chunk-slash" title="검수용 끊어읽기 구분선">/</span>`
+      : '';
+
+    return `<span class="word-token" id="wt-${sentIdx}-${wIdx}">${innerHtml}</span>${slashHtml}`;
   }).join(' ');
 }
 
@@ -850,11 +870,13 @@ function renderStory() {
       <span class="legend-item">✂️ <strong>의미끊기</strong>: 의미 덩어리 하이라이트 연습</span>
       <span class="legend-item"><span class="char-name">인물이름</span> 등장인물</span>
       <span class="legend-item"><span class="vocab-highlight">핵심단어</span> 터치 시 뜻</span>
+      ${isReviewMode ? '<span class="legend-item"><span class="review-chunk-slash">/</span> 관리자 검수용 끊어읽기 위치</span>' : ''}
     `
     : `
       <span class="legend-item"><span class="char-name">인물이름</span> 등장인물</span>
       <span class="legend-item"><span class="vocab-highlight">핵심단어</span> 터치하면 뜻 & 발음</span>
       <span class="legend-item">🖼️ 왼쪽 그림으로 상황 유추하기</span>
+      ${isReviewMode ? '<span class="legend-item"><span class="review-chunk-slash">/</span> 관리자 검수용 끊어읽기 위치</span>' : ''}
     `;
 
   if (!lvData) {
@@ -869,7 +891,7 @@ function renderStory() {
         <div class="scene-visual" title="상황 그림">${getSceneIcon(s)}</div>
         <div class="sentence-body">
           <div class="sentence-top">
-            <div class="sentence-en">${formatSentenceHtml(s.en, lvData.vocab, idx)}</div>
+            <div class="sentence-en">${formatSentenceHtml(s, lvData.vocab, idx)}</div>
             <div class="sentence-actions">
               ${isChildMode ? `
                 <button class="mini-btn word-mode" onclick="playWordByWord(${idx})">🔤 단어별</button>
@@ -1306,7 +1328,7 @@ function renderStoryEditor(story) {
       <label style="font-weight:700;font-size:12.5px;display:block;margin-bottom:4px;">에피소드 제목 (${story.date})</label>
       <input id="revTitle" class="input-field" value="${story.title.replace(/"/g, '&quot;')}">
     </div>
-    <p style="font-size:12px;color:var(--muted);margin:0 0 10px;">💡 가운데 칸에서 <strong>슬래시( / )</strong> 위치를 고치면 아이들이 [✂️ 의미끊기] 버튼을 누를 때 그 단위대로 끊어 읽습니다.</p>
+    <p style="font-size:12px;color:var(--muted);margin:0 0 10px;">💡 가운데 노란색 칸에서 <strong>슬래시( / )</strong> 위치를 고치면 아이들이 [✂️ 의미끊기] 버튼을 누를 때 그 단위대로 끊어 읽습니다.</p>
   `;
 
   levels.forEach(lv => {
@@ -1323,7 +1345,7 @@ function renderStoryEditor(story) {
       html += `
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:6px;">
           <input data-lv="${lv}" data-idx="${sIdx}" data-field="en" value="${s.en.replace(/"/g, '&quot;')}" class="input-field" style="padding:5px 7px;font-size:12px;" title="영어 원문">
-          <input data-lv="${lv}" data-idx="${sIdx}" data-field="chunks" value="${chunksPreview.replace(/"/g, '&quot;')}" class="input-field" style="padding:5px 7px;font-size:12px;background:#fffbeb;" title="끊어읽기 단위 (/ 구분)">
+          <input data-lv="${lv}" data-idx="${sIdx}" data-field="chunks" value="${chunksPreview.replace(/"/g, '&quot;')}" class="input-field" style="padding:5px 7px;font-size:12px;background:#fffbeb;font-weight:700;" title="끊어읽기 단위 (/ 구분)">
           <input data-lv="${lv}" data-idx="${sIdx}" data-field="ko" value="${s.ko.replace(/"/g, '&quot;')}" class="input-field" style="padding:5px 7px;font-size:12px;" title="한글 해석">
         </div>
       `;
