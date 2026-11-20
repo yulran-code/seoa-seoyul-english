@@ -89,7 +89,7 @@
       font-weight: 700;
     }
 
-    /* ★ 깔끔하게 정돈된 회차 선택 바 (최근 3일 칩 + 전체 회차 드롭다운) */
+    /* 회차 선택 바 */
     .episode-nav-wrap {
       display: flex;
       align-items: center;
@@ -98,12 +98,7 @@
       margin-bottom: 12px;
       flex-wrap: wrap;
     }
-    .episode-chips {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-      flex: 1;
-    }
+    .episode-chips { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
     .ep-chip {
       background: #fff;
       border: 1px solid var(--border);
@@ -187,6 +182,21 @@
     }
     .legend-item { display: inline-flex; align-items: center; gap: 4px; }
 
+    /* 끊어읽기 진행 상태 배너 (서아 전용) */
+    .chunk-status-bar {
+      background: #fffbeb;
+      border: 1.5px solid #fcd34d;
+      color: #92400e;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 12.5px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
     /* 문장별 박스형 카드 + 상황 이미지 박스 */
     .sentence-list { display: flex; flex-direction: column; gap: 9px; }
     .sentence-card {
@@ -212,14 +222,32 @@
       box-shadow: 0 1px 2px rgba(0,0,0,0.04);
     }
     .sentence-body { flex: 1; min-width: 0; }
-    .sentence-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+    .sentence-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; flex-wrap: wrap; }
     .sentence-en {
       font-size: 15.5px;
       font-weight: 600;
       color: #0f172a;
-      line-height: 1.6;
+      line-height: 1.75;
       cursor: pointer;
       flex: 1;
+      min-width: 180px;
+    }
+    /* 파닉스 단계(Lv1) 개별 단어 터치 및 끊어읽기 하이라이트 */
+    .word-token {
+      display: inline-block;
+      padding: 1px 3px;
+      border-radius: 5px;
+      transition: all 0.12s;
+    }
+    .word-token:hover {
+      background: #e2e8f0;
+    }
+    .word-token.active-word {
+      background: #facc15 !important;
+      color: #000 !important;
+      font-weight: 900;
+      transform: scale(1.06);
+      box-shadow: 0 1px 4px rgba(234, 179, 8, 0.45);
     }
     .char-name {
       color: #7c3aed;
@@ -237,18 +265,23 @@
       cursor: pointer;
       font-weight: 700;
     }
-    .sentence-actions { display: flex; gap: 4px; flex-shrink: 0; }
+    .sentence-actions { display: flex; gap: 4px; flex-shrink: 0; flex-wrap: wrap; }
     .mini-btn {
       background: #fff;
       border: 1px solid #cbd5e1;
       border-radius: 7px;
-      padding: 3px 7px;
+      padding: 4px 8px;
       font-size: 11px;
-      font-weight: 600;
+      font-weight: 700;
       color: #475569;
       cursor: pointer;
     }
     .mini-btn:hover { background: #e2e8f0; }
+    .mini-btn.step-read {
+      background: #fffbeb;
+      border-color: #f59e0b;
+      color: #b45309;
+    }
     .sentence-ko {
       margin-top: 7px;
       padding-top: 7px;
@@ -304,7 +337,7 @@
       font-size: 13.5px;
     }
 
-    /* ★ 퀴즈 + 정답/오답 피드백 배너 */
+    /* 퀴즈 */
     .quiz-item { margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
     .quiz-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
     .quiz-q { font-weight: 700; font-size: 14px; margin-bottom: 7px; }
@@ -433,11 +466,12 @@
         </div>
       </div>
 
-      <div class="legend-bar">
-        <span class="legend-item"><span class="char-name">인물이름</span> 등장인물</span>
-        <span class="legend-item"><span class="vocab-highlight">핵심단어</span> 터치하면 뜻 & 발음</span>
-        <span class="legend-item">🖼️ 왼쪽 그림으로 상황 유추하기</span>
+      <div id="chunkStatusBar" class="chunk-status-bar hidden">
+        <span id="chunkStatusText">🐢 1단어씩 따라 읽기 중...</span>
+        <button class="mini-btn" onclick="stopSpeech()">중지</button>
       </div>
+
+      <div class="legend-bar" id="legendBar"></div>
 
       <div class="sentence-list" id="sentenceList"></div>
     </div>
@@ -512,7 +546,7 @@
 const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycby7pqe1UeemP6U6QNUacfO65hF-7g93Eh9aj1N-Rjis1WECHgAgYGQF3aWiB4Ocm9Ye6A/exec";
 
 const USERS = [
-  { id: 'seoa', name: '서아', level: 'lv1', desc: '초3 · 왕초보 동화형' },
+  { id: 'seoa', name: '서아', level: 'lv1', desc: '초3 · 1단어→2단어 끊어읽기' },
   { id: 'seoyul', name: '서율', level: 'lv2', desc: '초6 · 1C 스토리' },
   { id: 'mom', name: '엄마', level: 'lv3', desc: '성인 · A2~B1 원서형' }
 ];
@@ -529,6 +563,7 @@ let currentStoryIdx = 0;
 let progressData = JSON.parse(localStorage.getItem('backup_progress') || '{}');
 let showAllKo = false;
 let speechRate = 1.0;
+let stepPlayCancel = false;
 const isReviewMode = new URLSearchParams(window.location.search).get('mode') === 'review';
 
 let activeRecorder = null;
@@ -614,12 +649,14 @@ function selectUser(userId) {
   recordedAudioUrls = {};
   currentUser = userId;
   localStorage.setItem('selected_user', userId);
+  // 서아(초3) 선택 시 기본 속도를 0.85x로 자동 맞춤
+  speechRate = userId === 'seoa' ? 0.85 : 1.0;
+  document.getElementById('speedBtn').textContent = `속도 ${speechRate}x`;
   renderUserTabs();
   renderEpisodeBar();
   renderStory();
 }
 
-// ★ 최근 3일 치만 칩으로 띄우고, 전체 회차는 우측 드롭다운으로 깔끔하게 정리
 function renderEpisodeBar() {
   const bar = document.getElementById('episodeBar');
   if (!stories.length) {
@@ -684,39 +721,53 @@ function getSceneIcon(sentenceObj) {
   return '📖';
 }
 
-function formatSentenceHtml(sentence, vocabObj) {
-  let result = sentence;
-  const placeholders = [];
+// ★ 문장을 단어 단위로 쪼개어 [단어 터치 발음 + 끊어읽기 노란 하이라이트 + 인물색상 + 핵심단어] 모두 지원
+function formatSentenceHtml(sentence, vocabObj, sentIdx, isBeginner) {
+  const rawWords = sentence.split(/\s+/);
+  const vocabKeys = vocabObj ? Object.keys(vocabObj).sort((a, b) => b.length - a.length) : [];
 
-  const charRegex = new RegExp(`\\b(${CHARACTER_NAMES.join('|')})(?:'s)?\\b`, 'g');
-  result = result.replace(charRegex, (match) => {
-    const idx = placeholders.length;
-    placeholders.push(`<span class="char-name">${match}</span>`);
-    return `__PH_${idx}__`;
-  });
+  return rawWords.map((rawWord, wIdx) => {
+    const cleanAlpha = rawWord.replace(/[^a-zA-Z']/g, '');
+    const baseName = cleanAlpha.replace(/'s$/i, '');
+    const isChar = CHARACTER_NAMES.some(c => c.toLowerCase() === baseName.toLowerCase());
 
-  if (vocabObj) {
-    const words = Object.keys(vocabObj).sort((a, b) => b.length - a.length);
-    words.forEach(w => {
-      const escaped = w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const regex = new RegExp(`\\b(${escaped}\\w*)\\b`, 'gi');
-      result = result.replace(regex, (match) => {
-        const idx = placeholders.length;
-        const safeMean = vocabObj[w].replace(/'/g, "\\'").replace(/"/g, '&quot;');
-        placeholders.push(`<span class="vocab-highlight" onclick="event.stopPropagation(); showWordPopup('${match}', '${safeMean}')">${match}</span>`);
-        return `__PH_${idx}__`;
-      });
-    });
-  }
+    let matchedVocabKey = null;
+    for (const vk of vocabKeys) {
+      if (cleanAlpha.toLowerCase().startsWith(vk.toLowerCase())) {
+        matchedVocabKey = vk;
+        break;
+      }
+    }
 
-  placeholders.forEach((html, i) => {
-    result = result.replace(`__PH_${i}__`, html);
-  });
-  return result;
+    const safeSpoken = cleanAlpha.replace(/'/g, "\\'");
+    let innerHtml = rawWord;
+
+    if (isChar) {
+      innerHtml = `<span class="char-name">${rawWord}</span>`;
+    } else if (matchedVocabKey) {
+      const safeMean = vocabObj[matchedVocabKey].replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      innerHtml = `<span class="vocab-highlight" onclick="event.stopPropagation(); showWordPopup('${safeSpoken}', '${safeMean}')">${rawWord}</span>`;
+    } else if (isBeginner && safeSpoken) {
+      // 초급(서아) 모드에서는 일반 단어를 눌러도 해당 단어 1개만 또박또박 발음!
+      innerHtml = `<span onclick="event.stopPropagation(); speakWordOnly('${safeSpoken}', ${sentIdx}, ${wIdx})">${rawWord}</span>`;
+    }
+
+    return `<span class="word-token" id="wt-${sentIdx}-${wIdx}">${innerHtml}</span>`;
+  }).join(' ');
+}
+
+function speakWordOnly(word, sentIdx, wIdx) {
+  stopSpeech();
+  const el = document.getElementById(`wt-${sentIdx}-${wIdx}`);
+  if (el) el.classList.add('active-word');
+  const u = createUtterance(word, Math.min(speechRate, 0.75));
+  u.onend = () => { if (el) el.classList.remove('active-word'); };
+  window.speechSynthesis.speak(u);
 }
 
 function showWordPopup(word, meaning) {
-  speakText(word);
+  stopSpeech();
+  window.speechSynthesis.speak(createUtterance(word, Math.min(speechRate, 0.8)));
   const toast = document.getElementById('wordToast');
   toast.innerHTML = `<strong>🔊 ${word}</strong> : ${meaning}`;
   toast.classList.remove('hidden');
@@ -729,10 +780,23 @@ function renderStory() {
   if (!story) return;
 
   const userObj = USERS.find(u => u.id === currentUser);
+  const isBeginner = userObj.level === 'lv1';
   const lvData = story.levels[userObj.level];
 
   document.getElementById('storyTitle').textContent = story.title;
   document.getElementById('storyMeta').textContent = `${story.date} · ${userObj.name} 맞춤 난이도 (${userObj.desc})`;
+
+  document.getElementById('legendBar').innerHTML = isBeginner
+    ? `
+      <span class="legend-item">👆 <strong>단어 1개 터치</strong>: 그 단어만 발음</span>
+      <span class="legend-item">🐢 <strong>끊어읽기</strong>: 1단어 → 2단어 → 문장 연습</span>
+      <span class="legend-item"><span class="char-name">인물이름</span> 등장인물</span>
+    `
+    : `
+      <span class="legend-item"><span class="char-name">인물이름</span> 등장인물</span>
+      <span class="legend-item"><span class="vocab-highlight">핵심단어</span> 터치하면 뜻 & 발음</span>
+      <span class="legend-item">🖼️ 왼쪽 그림으로 상황 유추하기</span>
+    `;
 
   if (!lvData) {
     document.getElementById('sentenceList').innerHTML = '<div style="color:var(--muted);padding:12px;">이 난이도의 스토리가 아직 생성 중입니다.</div>';
@@ -746,8 +810,9 @@ function renderStory() {
         <div class="scene-visual" title="상황 그림">${getSceneIcon(s)}</div>
         <div class="sentence-body">
           <div class="sentence-top">
-            <div class="sentence-en" onclick="speakSingle(${idx})">${formatSentenceHtml(s.en, lvData.vocab)}</div>
+            <div class="sentence-en" onclick="speakSingle(${idx})">${formatSentenceHtml(s.en, lvData.vocab, idx, isBeginner)}</div>
             <div class="sentence-actions">
+              ${isBeginner ? `<button class="mini-btn step-read" onclick="playStepByStep(${idx})">🐢 끊어읽기</button>` : ''}
               <button class="mini-btn" onclick="speakSingle(${idx})">🔊 듣기</button>
               <button class="mini-btn" onclick="toggleSingleKo(${idx})">한글해석</button>
             </div>
@@ -778,7 +843,6 @@ function renderStory() {
     </div>
   `).join('');
 
-  // ★ 퀴즈 + 클릭 시 정답/오답 피드백 메시지 복원
   const qList = document.getElementById('quizList');
   qList.innerHTML = (lvData.quiz || []).map((q, qIdx) => `
     <div class="quiz-item">
@@ -792,11 +856,81 @@ function renderStory() {
     </div>
   `).join('');
 
-  renderSpeakingList(lvData.speaking || []);
+  renderSpeakingList(lvData.speaking || [], isBeginner);
   renderCompleteBar();
 }
 
-function renderSpeakingList(speakingArr) {
+// ★ 파닉스·초급용 3단계 스캐폴딩 끊어읽기 (1단어씩 → 2단어 묶음 → 전체 문장)
+async function playStepByStep(sentIdx) {
+  stopSpeech();
+  stepPlayCancel = false;
+
+  const story = stories[currentStoryIdx];
+  const userObj = USERS.find(u => u.id === currentUser);
+  const sentence = story.levels[userObj.level].sentences[sentIdx].en;
+  const words = sentence.split(/\s+/);
+
+  const card = document.getElementById(`sent-card-${sentIdx}`);
+  const statusBar = document.getElementById('chunkStatusBar');
+  const statusText = document.getElementById('chunkStatusText');
+  card.classList.add('speaking');
+  statusBar.classList.remove('hidden');
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const speakPromise = (text, rate) => new Promise(resolve => {
+    if (stepPlayCancel) return resolve();
+    const u = createUtterance(text, rate);
+    u.onend = () => resolve();
+    u.onerror = () => resolve();
+    window.speechSynthesis.speak(u);
+  });
+
+  const highlightRange = (startIdx, endIdx) => {
+    document.querySelectorAll('.word-token').forEach(el => el.classList.remove('active-word'));
+    for (let i = startIdx; i <= endIdx; i++) {
+      const el = document.getElementById(`wt-${sentIdx}-${i}`);
+      if (el) el.classList.add('active-word');
+    }
+  };
+
+  // [1단계] 단어 1개씩 텀을 두고 또박또박 읽기
+  statusText.textContent = '🐢 [1/3단계] 한 단어씩 따라 읽어보세요!';
+  for (let i = 0; i < words.length; i++) {
+    if (stepPlayCancel) break;
+    highlightRange(i, i);
+    const clean = words[i].replace(/[^a-zA-Z']/g, '');
+    if (clean) await speakPromise(clean, 0.65);
+    await sleep(650); // 아이가 따라 말할 틈
+  }
+
+  // [2단계] 2단어씩 묶어 읽기
+  if (!stepPlayCancel) {
+    statusText.textContent = '🚶 [2/3단계] 이제 두 단어씩 묶어서 읽어볼까요?';
+    await sleep(500);
+    for (let i = 0; i < words.length; i += 2) {
+      if (stepPlayCancel) break;
+      const end = Math.min(i + 1, words.length - 1);
+      highlightRange(i, end);
+      const chunkText = words.slice(i, end + 1).join(' ').replace(/[^a-zA-Z'\s]/g, '');
+      if (chunkText) await speakPromise(chunkText, 0.72);
+      await sleep(750);
+    }
+  }
+
+  // [3단계] 천천히 전체 문장 연결 읽기
+  if (!stepPlayCancel) {
+    statusText.textContent = '🏃 [3/3단계] 마지막으로 한 문장을 쭉 연결해요!';
+    highlightRange(0, words.length - 1);
+    await sleep(400);
+    await speakPromise(sentence, 0.75);
+  }
+
+  document.querySelectorAll('.word-token').forEach(el => el.classList.remove('active-word'));
+  card.classList.remove('speaking');
+  statusBar.classList.add('hidden');
+}
+
+function renderSpeakingList(speakingArr, isBeginner) {
   const spList = document.getElementById('speakingList');
   spList.innerHTML = speakingArr.map((sp, idx) => {
     const isRec = activeRecIdx === idx;
@@ -808,7 +942,9 @@ function renderSpeakingList(speakingArr) {
           <div style="font-size:12px;color:var(--muted);">${sp.ko}</div>
         </div>
         <div class="speak-btns">
-          <button class="btn" onclick="speakText('${sp.en.replace(/'/g, "\\'")}')">🔊 원어민 듣기</button>
+          <button class="btn" onclick="speakText('${sp.en.replace(/'/g, "\\'")}', ${isBeginner ? 0.65 : 'null'})">
+            ${isBeginner ? '🐢 아주 천천히 듣기' : '🔊 원어민 듣기'}
+          </button>
           <button class="btn btn-rec ${isRec ? 'recording' : ''}" onclick="toggleRecord(${idx})">
             ${isRec ? '⏹ 녹음 중지' : '🎤 녹음하기'}
           </button>
@@ -822,6 +958,7 @@ function renderSpeakingList(speakingArr) {
 async function toggleRecord(idx) {
   const story = stories[currentStoryIdx];
   const userObj = USERS.find(u => u.id === currentUser);
+  const isBeginner = userObj.level === 'lv1';
   const speakingArr = story.levels[userObj.level].speaking || [];
 
   if (activeRecorder && activeRecorder.state === 'recording') {
@@ -846,11 +983,11 @@ async function toggleRecord(idx) {
       stream.getTracks().forEach(track => track.stop());
       activeRecorder = null;
       activeRecIdx = null;
-      renderSpeakingList(speakingArr);
+      renderSpeakingList(speakingArr, isBeginner);
     };
 
     recorder.start();
-    renderSpeakingList(speakingArr);
+    renderSpeakingList(speakingArr, isBeginner);
   } catch (err) {
     alert('마이크 권한을 허용해 주셔야 녹음 기능을 사용할 수 있습니다.');
   }
@@ -875,7 +1012,6 @@ function toggleAllKo() {
   });
 }
 
-// ★ 퀴즈 정답/오답 메시지 출력
 function checkQuiz(btn, qIdx, selectedIdx, correctIdx) {
   const parent = btn.parentElement;
   parent.querySelectorAll('.quiz-opt').forEach(b => b.classList.remove('correct', 'wrong'));
@@ -893,61 +1029,83 @@ function checkQuiz(btn, qIdx, selectedIdx, correctIdx) {
   }
 }
 
-function speakText(text) {
-  window.speechSynthesis.cancel();
+// 고음질 원어민 음성 자동 선택 + 0.55x 초저속 지원
+function getBestEnglishVoice() {
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) return null;
+  const preferred = voices.find(v =>
+    v.lang.includes('en-US') &&
+    (v.name.includes('Google US English') || v.name.includes('Natural') || v.name.includes('Enhanced') || v.name.includes('Aria') || v.name.includes('Jenny'))
+  );
+  if (preferred) return preferred;
+  return voices.find(v => v.lang === 'en-US') || voices.find(v => v.lang.startsWith('en')) || null;
+}
+
+window.speechSynthesis.onvoiceschanged = () => getBestEnglishVoice();
+
+function createUtterance(text, customRate) {
   const u = new SpeechSynthesisUtterance(text);
+  const best = getBestEnglishVoice();
+  if (best) u.voice = best;
   u.lang = 'en-US';
-  u.rate = speechRate;
-  window.speechSynthesis.speak(u);
+  u.rate = customRate || speechRate;
+  u.pitch = 1.02;
+  return u;
+}
+
+function speakText(text, customRate) {
+  stopSpeech();
+  window.speechSynthesis.speak(createUtterance(text, customRate));
 }
 
 function speakSingle(idx) {
+  stopSpeech();
   const story = stories[currentStoryIdx];
   const userObj = USERS.find(u => u.id === currentUser);
   const s = story.levels[userObj.level].sentences[idx];
-  document.querySelectorAll('.sentence-card').forEach(c => c.classList.remove('speaking'));
   const card = document.getElementById(`sent-card-${idx}`);
   card.classList.add('speaking');
 
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(s.en);
-  u.lang = 'en-US';
-  u.rate = speechRate;
+  const u = createUtterance(s.en);
   u.onend = () => card.classList.remove('speaking');
   window.speechSynthesis.speak(u);
 }
 
 function playAllSentences() {
+  stopSpeech();
+  stepPlayCancel = false;
   const story = stories[currentStoryIdx];
   const userObj = USERS.find(u => u.id === currentUser);
   const list = story.levels[userObj.level].sentences;
   let idx = 0;
 
   function next() {
-    if (idx >= list.length) {
+    if (stepPlayCancel || idx >= list.length) {
       document.querySelectorAll('.sentence-card').forEach(c => c.classList.remove('speaking'));
       return;
     }
     document.querySelectorAll('.sentence-card').forEach(c => c.classList.remove('speaking'));
     document.getElementById(`sent-card-${idx}`).classList.add('speaking');
 
-    const u = new SpeechSynthesisUtterance(list[idx].en);
-    u.lang = 'en-US';
-    u.rate = speechRate;
-    u.onend = () => { idx++; next(); };
+    const u = createUtterance(list[idx].en);
+    u.onend = () => { idx++; setTimeout(next, 450); };
     window.speechSynthesis.speak(u);
   }
-  window.speechSynthesis.cancel();
   next();
 }
 
 function stopSpeech() {
+  stepPlayCancel = true;
   window.speechSynthesis.cancel();
   document.querySelectorAll('.sentence-card').forEach(c => c.classList.remove('speaking'));
+  document.querySelectorAll('.word-token').forEach(el => el.classList.remove('active-word'));
+  const statusBar = document.getElementById('chunkStatusBar');
+  if (statusBar) statusBar.classList.add('hidden');
 }
 
 function cycleSpeed() {
-  const speeds = [1.0, 0.85, 0.75, 1.15];
+  // ★ 초저속 0.55x 포함
+  const speeds = [1.0, 0.85, 0.7, 0.55];
   speechRate = speeds[(speeds.indexOf(speechRate) + 1) % speeds.length];
   document.getElementById('speedBtn').textContent = `속도 ${speechRate}x`;
 }
