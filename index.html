@@ -238,22 +238,12 @@
       cursor: pointer;
       transition: all 0.12s;
     }
-    .word-token:hover {
-      background: #e2e8f0;
-    }
+    .word-token:hover { background: #e2e8f0; }
     .word-token.active-word {
       background: #facc15 !important;
       color: #000 !important;
       font-weight: 900;
       box-shadow: 0 1px 3px rgba(234, 179, 8, 0.45);
-    }
-    /* 의미 단위 끊어읽기 구간 구분 슬래시 표시 */
-    .chunk-divider {
-      color: #94a3b8;
-      font-weight: 400;
-      font-size: 13px;
-      margin: 0 3px;
-      user-select: none;
     }
     .char-name {
       color: #7c3aed;
@@ -568,13 +558,17 @@ const CHARACTER_NAMES = [
   'Rintaro', 'Kaoruko', 'Shohei', 'Subaru', 'Saku'
 ];
 
-// ★ 영어 의미 단위(Sense Group) 끊어읽기 기준 전치사·접속사·관계사 목록
 const CHUNK_BREAK_WORDS = new Set([
   'in', 'on', 'at', 'to', 'for', 'with', 'from', 'into', 'about', 'around',
   'by', 'under', 'behind', 'through', 'during', 'before', 'after', 'inside',
   'outside', 'onto', 'across', 'against', 'without', 'toward', 'towards',
-  'and', 'but', 'so', 'or', 'because', 'when', 'if', 'while', 'until',
-  'once', 'as', 'that', 'which', 'who', 'where'
+  'and', 'but', 'so', 'or', 'because', 'when', 'if', 'while', 'until', 'once', 'that', 'which', 'who'
+]);
+
+const NO_BREAK_AFTER_WORDS = new Set([
+  'a', 'an', 'the', 'my', 'your', 'his', 'her', 'its', 'our', 'their', 'this', 'that', 'these', 'those',
+  'had', 'have', 'has', 'was', 'were', 'is', 'are', 'am', 'will', 'would', 'can', 'could', 'should', 'must',
+  'to', 'very', 'so', 'too', 'big', 'blue', 'thin', 'old', 'new', 'little', 'small', 'dark', 'empty', 'famous'
 ]);
 
 let currentUser = localStorage.getItem('selected_user') || 'seoa';
@@ -740,30 +734,44 @@ function getSceneIcon(sentenceObj) {
   return '📖';
 }
 
-// ★ 문장을 [의미 단위 청크(Sense Group)]로 자동 분할하는 함수
-function computeSemanticChunks(words) {
+function getSentenceChunks(sentenceObj) {
+  const words = sentenceObj.en.split(/\s+/);
+  if (Array.isArray(sentenceObj.chunks) && sentenceObj.chunks.length > 0) {
+    const mapped = [];
+    let cursor = 0;
+    for (const chunkStr of sentenceObj.chunks) {
+      const cLen = chunkStr.trim().split(/\s+/).length;
+      if (cursor < words.length) {
+        mapped.push({ start: cursor, end: Math.min(cursor + cLen - 1, words.length - 1) });
+        cursor += cLen;
+      }
+    }
+    if (cursor < words.length && mapped.length > 0) {
+      mapped[mapped.length - 1].end = words.length - 1;
+    }
+    if (mapped.length > 0) return mapped;
+  }
+
   const chunks = [];
   let start = 0;
-
   for (let i = 1; i < words.length; i++) {
-    const prevWord = words[i - 1];
-    const cleanCurr = words[i].toLowerCase().replace(/[^a-z']/g, '');
-    const currentChunkLen = i - start;
+    const prevRaw = words[i - 1];
+    const prevClean = prevRaw.toLowerCase().replace(/[^a-z']/g, '');
+    const currClean = words[i].toLowerCase().replace(/[^a-z']/g, '');
+    const len = i - start;
 
-    // 1. 앞 단어가 콤마(,)로 끝나면 무조건 끊기
-    const afterComma = prevWord.endsWith(',');
-    // 2. 전치사·접속사·관계사 앞에서 끊기 (단, 현재 덩어리가 최소 2단어 이상일 때)
-    const beforeBreakWord = CHUNK_BREAK_WORDS.has(cleanCurr) && currentChunkLen >= 2;
-    // 3. 한 덩어리가 5단어 이상 길어지면 자연스럽게 호흡 끊기
-    const tooLong = currentChunkLen >= 5;
+    if (NO_BREAK_AFTER_WORDS.has(prevClean)) continue;
 
-    if (afterComma || beforeBreakWord || tooLong) {
+    const afterComma = prevRaw.endsWith(',');
+    const beforePrepositionOrConj = CHUNK_BREAK_WORDS.has(currClean) && len >= 2;
+    const afterLongSubject = len >= 3 && i === 3 && !CHUNK_BREAK_WORDS.has(currClean);
+
+    if (afterComma || beforePrepositionOrConj || afterLongSubject) {
       chunks.push({ start, end: i - 1 });
       start = i;
     }
   }
   if (start < words.length) {
-    // 마지막 조각이 1단어뿐이면 앞 덩어리에 자연스럽게 합침 (단독 전치사/부사 방지)
     if (chunks.length > 0 && words.length - start === 1) {
       chunks[chunks.length - 1].end = words.length - 1;
     } else {
@@ -773,12 +781,9 @@ function computeSemanticChunks(words) {
   return chunks;
 }
 
-// ★ 단어 토큰화 + 의미 단위 끊어읽기 구간(/) 표시 + 인물색상 + 핵심단어 하이라이트
-function formatSentenceHtml(sentence, vocabObj, sentIdx, showChunkSlashes) {
+function formatSentenceHtml(sentence, vocabObj, sentIdx) {
   const rawWords = sentence.split(/\s+/);
   const vocabKeys = vocabObj ? Object.keys(vocabObj).sort((a, b) => b.length - a.length) : [];
-  const chunks = computeSemanticChunks(rawWords);
-  const chunkEndSet = new Set(chunks.slice(0, -1).map(c => c.end));
 
   return rawWords.map((rawWord, wIdx) => {
     const cleanAlpha = rawWord.replace(/[^a-zA-Z']/g, '');
@@ -805,8 +810,7 @@ function formatSentenceHtml(sentence, vocabObj, sentIdx, showChunkSlashes) {
       innerHtml = `<span onclick="event.stopPropagation(); speakWordOnly('${safeSpoken}', ${sentIdx}, ${wIdx})">${rawWord}</span>`;
     }
 
-    const slashHtml = (showChunkSlashes && chunkEndSet.has(wIdx)) ? `<span class="chunk-divider">/</span>` : '';
-    return `<span class="word-token" id="wt-${sentIdx}-${wIdx}">${innerHtml}</span>${slashHtml}`;
+    return `<span class="word-token" id="wt-${sentIdx}-${wIdx}">${innerHtml}</span>`;
   }).join(' ');
 }
 
@@ -843,7 +847,7 @@ function renderStory() {
   document.getElementById('legendBar').innerHTML = isChildMode
     ? `
       <span class="legend-item">🔤 <strong>단어별</strong>: 한 단어씩 반복 연습</span>
-      <span class="legend-item">✂️ <strong>의미끊기</strong>: 의미 덩어리(/) 단위 연습</span>
+      <span class="legend-item">✂️ <strong>의미끊기</strong>: 의미 덩어리 하이라이트 연습</span>
       <span class="legend-item"><span class="char-name">인물이름</span> 등장인물</span>
       <span class="legend-item"><span class="vocab-highlight">핵심단어</span> 터치 시 뜻</span>
     `
@@ -865,7 +869,7 @@ function renderStory() {
         <div class="scene-visual" title="상황 그림">${getSceneIcon(s)}</div>
         <div class="sentence-body">
           <div class="sentence-top">
-            <div class="sentence-en">${formatSentenceHtml(s.en, lvData.vocab, idx, isChildMode)}</div>
+            <div class="sentence-en">${formatSentenceHtml(s.en, lvData.vocab, idx)}</div>
             <div class="sentence-actions">
               ${isChildMode ? `
                 <button class="mini-btn word-mode" onclick="playWordByWord(${idx})">🔤 단어별</button>
@@ -918,7 +922,6 @@ function renderStory() {
   renderCompleteBar();
 }
 
-// ★ [독립 버튼 1] 단어별로만 1개씩 또박또박 듣고 따라하기
 async function playWordByWord(sentIdx) {
   stopSpeech();
   stepPlayCancel = false;
@@ -952,7 +955,7 @@ async function playWordByWord(sentIdx) {
 
     const clean = words[i].replace(/[^a-zA-Z']/g, '');
     if (clean) await speakPromise(clean, 0.65);
-    await sleep(950); // 아이가 한 단어씩 충분히 따라 말할 수 있는 0.95초 텀
+    await sleep(950);
   }
 
   document.querySelectorAll('.word-token').forEach(el => el.classList.remove('active-word'));
@@ -960,23 +963,22 @@ async function playWordByWord(sentIdx) {
   statusBar.classList.add('hidden');
 }
 
-// ★ [독립 버튼 2] 의미 단위(Sense Group) 끊어읽기만 반복 연습하기
 async function playBySemanticChunks(sentIdx) {
   stopSpeech();
   stepPlayCancel = false;
 
   const story = stories[currentStoryIdx];
   const userObj = USERS.find(u => u.id === currentUser);
-  const sentence = story.levels[userObj.level].sentences[sentIdx].en;
-  const words = sentence.split(/\s+/);
-  const chunks = computeSemanticChunks(words);
+  const sentenceObj = story.levels[userObj.level].sentences[sentIdx];
+  const words = sentenceObj.en.split(/\s+/);
+  const chunks = getSentenceChunks(sentenceObj);
 
   const card = document.getElementById(`sent-card-${sentIdx}`);
   const statusBar = document.getElementById('chunkStatusBar');
   const statusText = document.getElementById('chunkStatusText');
   card.classList.add('speaking');
   statusBar.classList.remove('hidden');
-  statusText.textContent = '✂️ 의미 단위(/) 끊어읽기 연습 중...';
+  statusText.textContent = '✂️ 의미 단위 끊어읽기 연습 중... (노란색 덩어리대로 따라 읽어요)';
 
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const speakPromise = (text, rate) => new Promise(resolve => {
@@ -998,7 +1000,7 @@ async function playBySemanticChunks(sentIdx) {
 
     const chunkText = words.slice(start, end + 1).join(' ').replace(/[^a-zA-Z'\s]/g, '');
     if (chunkText) await speakPromise(chunkText, Math.min(speechRate, 0.78));
-    await sleep(1050); // 의미 덩어리를 따라 말할 수 있는 1.05초 텀
+    await sleep(1050);
   }
 
   document.querySelectorAll('.word-token').forEach(el => el.classList.remove('active-word'));
@@ -1304,6 +1306,7 @@ function renderStoryEditor(story) {
       <label style="font-weight:700;font-size:12.5px;display:block;margin-bottom:4px;">에피소드 제목 (${story.date})</label>
       <input id="revTitle" class="input-field" value="${story.title.replace(/"/g, '&quot;')}">
     </div>
+    <p style="font-size:12px;color:var(--muted);margin:0 0 10px;">💡 가운데 칸에서 <strong>슬래시( / )</strong> 위치를 고치면 아이들이 [✂️ 의미끊기] 버튼을 누를 때 그 단위대로 끊어 읽습니다.</p>
   `;
 
   levels.forEach(lv => {
@@ -1315,10 +1318,13 @@ function renderStoryEditor(story) {
     html += `<div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;background:#f8fafc;">
       <div style="font-weight:700;margin-bottom:6px;font-size:13px;">${levelNames[lv]} (${lvData.sentences.length}문장)</div>`;
     lvData.sentences.forEach((s, sIdx) => {
+      const words = s.en.split(/\s+/);
+      const chunksPreview = getSentenceChunks(s).map(c => words.slice(c.start, c.end + 1).join(' ')).join(' / ');
       html += `
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:5px;">
-          <input data-lv="${lv}" data-idx="${sIdx}" data-field="en" value="${s.en.replace(/"/g, '&quot;')}" class="input-field" style="padding:5px 8px;font-size:12.5px;">
-          <input data-lv="${lv}" data-idx="${sIdx}" data-field="ko" value="${s.ko.replace(/"/g, '&quot;')}" class="input-field" style="padding:5px 8px;font-size:12.5px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:6px;">
+          <input data-lv="${lv}" data-idx="${sIdx}" data-field="en" value="${s.en.replace(/"/g, '&quot;')}" class="input-field" style="padding:5px 7px;font-size:12px;" title="영어 원문">
+          <input data-lv="${lv}" data-idx="${sIdx}" data-field="chunks" value="${chunksPreview.replace(/"/g, '&quot;')}" class="input-field" style="padding:5px 7px;font-size:12px;background:#fffbeb;" title="끊어읽기 단위 (/ 구분)">
+          <input data-lv="${lv}" data-idx="${sIdx}" data-field="ko" value="${s.ko.replace(/"/g, '&quot;')}" class="input-field" style="padding:5px 7px;font-size:12px;" title="한글 해석">
         </div>
       `;
     });
@@ -1328,7 +1334,7 @@ function renderStoryEditor(story) {
   html += `
     <div style="display:flex;justify-content:space-between;margin-top:14px;">
       <button id="revDeleteBtn" class="btn" style="background:#ef4444;color:#fff;border-color:#ef4444;">🗑️ 이 날짜 삭제</button>
-      <button id="revSaveBtn" class="btn btn-primary">💾 수정 내용 시트에 저장</button>
+      <button id="revSaveBtn" class="btn btn-primary">💾 수정 내용(청크 포함) 시트에 저장</button>
     </div>
   `;
   area.innerHTML = html;
@@ -1339,7 +1345,11 @@ function renderStoryEditor(story) {
     updated.title = document.getElementById('revTitle').value;
     area.querySelectorAll('input[data-lv]').forEach(inp => {
       const { lv, idx, field } = inp.dataset;
-      updated.levels[lv].sentences[Number(idx)][field] = inp.value;
+      if (field === 'chunks') {
+        updated.levels[lv].sentences[Number(idx)].chunks = inp.value.split('/').map(x => x.trim()).filter(Boolean);
+      } else {
+        updated.levels[lv].sentences[Number(idx)][field] = inp.value;
+      }
     });
     const btn = document.getElementById('revSaveBtn');
     btn.textContent = '저장 중...';
