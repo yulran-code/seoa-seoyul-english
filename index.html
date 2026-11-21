@@ -953,7 +953,7 @@ function renderStory() {
 // ★ 한국어 인물 이름 TTS 발음 교정 (화면 철자는 유지하고 소리만 "비실", "이슬" 등으로 교정)
 function normalizePronunciation(text) {
   return text
-    .replace(/\bBisil('s)?\b/gi, (_, s) => `Beesil${s || ''}`)
+    .replace(/\bBisil('s)?\b/gi, (_, s) => `Beeseel${s || ''}`)
     .replace(/\bIseul('s)?\b/gi, (_, s) => `Eesul${s || ''}`)
     .replace(/\bJingu('s)?\b/gi, (_, s) => `Jingoo${s || ''}`)
     .replace(/\bTung('s)?\b/gi, (_, s) => `Toong${s || ''}`)
