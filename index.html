@@ -534,12 +534,19 @@
 
 <div id="settingsModal" class="modal-backdrop">
   <div class="modal-box">
-    <h3 style="margin-top:0;">⚙️ 구글 시트 웹앱 연결 설정</h3>
-    <p style="font-size:12.5px;color:var(--muted);">Apps Script 배포 후 발급받은 웹앱 주소(<code>.../exec</code>)를 입력하세요.</p>
+    <h3 style="margin-top:0;">⚙️ 앱 및 원어민 AI 음성 설정</h3>
+    <p style="font-size:12.5px;color:var(--muted);margin-bottom:6px;">1. 구글 시트 웹앱 주소(<code>.../exec</code>)</p>
     <input id="gasUrlInput" class="input-field" placeholder="https://script.google.com/macros/s/.../exec" />
-    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;">
+
+    <p style="font-size:12.5px;color:var(--muted);margin:14px 0 6px;">2. 원어민 AI 성우 선택 (Edge/브라우저 내장 고품질 음성)</p>
+    <div style="display:flex;gap:6px;">
+      <select id="voiceSelect" class="input-field" style="flex:1;"></select>
+      <button class="btn" type="button" onclick="previewSelectedVoice()">🔊 미리듣기</button>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
       <button class="btn" onclick="closeSettings()">취소</button>
-      <button class="btn btn-primary" onclick="saveSettings()">연결 저장</button>
+      <button class="btn btn-primary" onclick="saveSettings()">설정 저장</button>
     </div>
   </div>
 </div>
@@ -794,7 +801,6 @@ function getSentenceChunks(sentenceObj) {
   return chunks;
 }
 
-// ★ 일반 학습 화면에서는 깔끔한 문장만, 관리자 검수 모드(?mode=review)에서는 노란색 [/] 배지 표시!
 function formatSentenceHtml(sentenceObj, vocabObj, sentIdx) {
   const rawWords = sentenceObj.en.split(/\s+/);
   const vocabKeys = vocabObj ? Object.keys(vocabObj).sort((a, b) => b.length - a.length) : [];
@@ -944,9 +950,120 @@ function renderStory() {
   renderCompleteBar();
 }
 
+// ★ 한국어 인물 이름 TTS 발음 교정 (화면 철자는 유지하고 소리만 "비실", "이슬" 등으로 교정)
+function normalizePronunciation(text) {
+  return text
+    .replace(/\bBisil('s)?\b/gi, (_, s) => `Beesil${s || ''}`)
+    .replace(/\bIseul('s)?\b/gi, (_, s) => `Eesul${s || ''}`)
+    .replace(/\bJingu('s)?\b/gi, (_, s) => `Jingoo${s || ''}`)
+    .replace(/\bTung('s)?\b/gi, (_, s) => `Toong${s || ''}`)
+    .replace(/\bYoungmin('s)?\b/gi, (_, s) => `Yungmin${s || ''}`)
+    .replace(/\bKogoro('s)?\b/gi, (_, s) => `Kogoroh${s || ''}`);
+}
+
+function getEnglishVoicesList() {
+  const voices = window.speechSynthesis.getVoices();
+  return voices
+    .filter(v => v.lang.startsWith('en'))
+    .sort((a, b) => {
+      const score = v =>
+        (v.lang === 'en-US' ? 10 : 0) +
+        (v.name.includes('Natural') || v.name.includes('Aria') || v.name.includes('Jenny') || v.name.includes('Ana') || v.name.includes('Guy') ? 20 : 0) +
+        (v.name.includes('Google') ? 15 : 0);
+      return score(b) - score(a);
+    });
+}
+
+function getBestEnglishVoice() {
+  const enVoices = getEnglishVoicesList();
+  if (!enVoices.length) return null;
+  const savedVoiceName = localStorage.getItem('selected_voice_name');
+  if (savedVoiceName) {
+    const found = enVoices.find(v => v.name === savedVoiceName);
+    if (found) return found;
+  }
+  return enVoices[0];
+}
+
+function populateVoiceDropdown() {
+  const sel = document.getElementById('voiceSelect');
+  if (!sel) return;
+  const enVoices = getEnglishVoicesList();
+  const savedName = localStorage.getItem('selected_voice_name') || (enVoices[0] && enVoices[0].name) || '';
+  sel.innerHTML = enVoices.map(v => {
+    const cleanLabel = v.name.replace('Microsoft ', '').replace('Online (Natural) - ', '✨ ');
+    return `<option value="${v.name}" ${v.name === savedName ? 'selected' : ''}>${cleanLabel} (${v.lang})</option>`;
+  }).join('');
+}
+
+function previewSelectedVoice() {
+  stopSpeech();
+  const sel = document.getElementById('voiceSelect');
+  const voices = getEnglishVoicesList();
+  const chosen = voices.find(v => v.name === sel.value);
+  const u = new SpeechSynthesisUtterance("Hello! Beesil and Eesul are reading today's story together.");
+  if (chosen) u.voice = chosen;
+  u.lang = 'en-US';
+  u.rate = speechRate;
+  window.speechSynthesis.speak(u);
+}
+
+window.speechSynthesis.onvoiceschanged = () => {
+  getBestEnglishVoice();
+  populateVoiceDropdown();
+};
+
+function createUtterance(text, customRate) {
+  const spokenText = normalizePronunciation(text);
+  const u = new SpeechSynthesisUtterance(spokenText);
+  const best = getBestEnglishVoice();
+  if (best) u.voice = best;
+  u.lang = 'en-US';
+  u.rate = customRate || speechRate;
+  u.pitch = 1.02;
+  return u;
+}
+
+// ★ 삼성 태블릿용 순차 발화 안전 헬퍼 (오디오 버퍼 겹침 및 조기 onend 방지)
+function speakChunkSafely(text, rate, isCancelledFn) {
+  return new Promise(resolve => {
+    if (isCancelledFn()) return resolve();
+
+    window.speechSynthesis.cancel();
+
+    setTimeout(() => {
+      if (isCancelledFn()) return resolve();
+
+      const u = createUtterance(text, rate);
+      let settled = false;
+
+      const estimatedDuration = Math.max(650, text.length * 95);
+      const startedAt = Date.now();
+
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(hardTimer);
+        const elapsed = Date.now() - startedAt;
+        const remain = Math.max(0, estimatedDuration - elapsed);
+        setTimeout(resolve, remain);
+      };
+
+      const hardTimer = setTimeout(finish, estimatedDuration + 2500);
+      u.onend = finish;
+      u.onerror = finish;
+
+      window.speechSynthesis.speak(u);
+    }, 60);
+  });
+}
+
 async function playWordByWord(sentIdx) {
   stopSpeech();
   stepPlayCancel = false;
+  const runId = Date.now();
+  window._currentStepRunId = runId;
+  const isCancelled = () => stepPlayCancel || window._currentStepRunId !== runId;
 
   const story = stories[currentStoryIdx];
   const userObj = USERS.find(u => u.id === currentUser);
@@ -961,33 +1078,35 @@ async function playWordByWord(sentIdx) {
   statusText.textContent = '🔤 단어별 따라 읽기 중... (원하는 만큼 다시 눌러 연습하세요)';
 
   const sleep = ms => new Promise(r => setTimeout(r, ms));
-  const speakPromise = (text, rate) => new Promise(resolve => {
-    if (stepPlayCancel) return resolve();
-    const u = createUtterance(text, rate);
-    u.onend = () => resolve();
-    u.onerror = () => resolve();
-    window.speechSynthesis.speak(u);
-  });
 
   for (let i = 0; i < words.length; i++) {
-    if (stepPlayCancel) break;
+    if (isCancelled()) break;
+
     document.querySelectorAll('.word-token').forEach(el => el.classList.remove('active-word'));
     const el = document.getElementById(`wt-${sentIdx}-${i}`);
     if (el) el.classList.add('active-word');
 
     const clean = words[i].replace(/[^a-zA-Z']/g, '');
-    if (clean) await speakPromise(clean, 0.65);
-    await sleep(950);
+    if (clean) {
+      await speakChunkSafely(clean, 0.65, isCancelled);
+    }
+    if (isCancelled()) break;
+    await sleep(650);
   }
 
-  document.querySelectorAll('.word-token').forEach(el => el.classList.remove('active-word'));
-  card.classList.remove('speaking');
-  statusBar.classList.add('hidden');
+  if (!isCancelled()) {
+    document.querySelectorAll('.word-token').forEach(el => el.classList.remove('active-word'));
+    card.classList.remove('speaking');
+    statusBar.classList.add('hidden');
+  }
 }
 
 async function playBySemanticChunks(sentIdx) {
   stopSpeech();
   stepPlayCancel = false;
+  const runId = Date.now();
+  window._currentStepRunId = runId;
+  const isCancelled = () => stepPlayCancel || window._currentStepRunId !== runId;
 
   const story = stories[currentStoryIdx];
   const userObj = USERS.find(u => u.id === currentUser);
@@ -1003,16 +1122,10 @@ async function playBySemanticChunks(sentIdx) {
   statusText.textContent = '✂️ 의미 단위 끊어읽기 연습 중... (노란색 덩어리대로 따라 읽어요)';
 
   const sleep = ms => new Promise(r => setTimeout(r, ms));
-  const speakPromise = (text, rate) => new Promise(resolve => {
-    if (stepPlayCancel) return resolve();
-    const u = createUtterance(text, rate);
-    u.onend = () => resolve();
-    u.onerror = () => resolve();
-    window.speechSynthesis.speak(u);
-  });
 
   for (let c = 0; c < chunks.length; c++) {
-    if (stepPlayCancel) break;
+    if (isCancelled()) break;
+
     const { start, end } = chunks[c];
     document.querySelectorAll('.word-token').forEach(el => el.classList.remove('active-word'));
     for (let i = start; i <= end; i++) {
@@ -1021,13 +1134,18 @@ async function playBySemanticChunks(sentIdx) {
     }
 
     const chunkText = words.slice(start, end + 1).join(' ').replace(/[^a-zA-Z'\s]/g, '');
-    if (chunkText) await speakPromise(chunkText, Math.min(speechRate, 0.78));
-    await sleep(1050);
+    if (chunkText) {
+      await speakChunkSafely(chunkText, Math.min(speechRate, 0.78), isCancelled);
+    }
+    if (isCancelled()) break;
+    await sleep(750);
   }
 
-  document.querySelectorAll('.word-token').forEach(el => el.classList.remove('active-word'));
-  card.classList.remove('speaking');
-  statusBar.classList.add('hidden');
+  if (!isCancelled()) {
+    document.querySelectorAll('.word-token').forEach(el => el.classList.remove('active-word'));
+    card.classList.remove('speaking');
+    statusBar.classList.add('hidden');
+  }
 }
 
 function renderSpeakingList(speakingArr, isChildMode) {
@@ -1127,29 +1245,6 @@ function checkQuiz(btn, qIdx, selectedIdx, correctIdx) {
     fbEl.classList.add('no');
     fbEl.textContent = '😅 아쉬워요! 위 본문을 한 번 더 살펴보고 다시 눌러볼까요?';
   }
-}
-
-function getBestEnglishVoice() {
-  const voices = window.speechSynthesis.getVoices();
-  if (!voices.length) return null;
-  const preferred = voices.find(v =>
-    v.lang.includes('en-US') &&
-    (v.name.includes('Google US English') || v.name.includes('Natural') || v.name.includes('Enhanced') || v.name.includes('Aria') || v.name.includes('Jenny'))
-  );
-  if (preferred) return preferred;
-  return voices.find(v => v.lang === 'en-US') || voices.find(v => v.lang.startsWith('en')) || null;
-}
-
-window.speechSynthesis.onvoiceschanged = () => getBestEnglishVoice();
-
-function createUtterance(text, customRate) {
-  const u = new SpeechSynthesisUtterance(text);
-  const best = getBestEnglishVoice();
-  if (best) u.voice = best;
-  u.lang = 'en-US';
-  u.rate = customRate || speechRate;
-  u.pitch = 1.02;
-  return u;
 }
 
 function speakText(text, customRate) {
@@ -1292,6 +1387,7 @@ function renderProgressBoard() {
 
 function openSettings() {
   document.getElementById('gasUrlInput').value = getGasUrl();
+  populateVoiceDropdown();
   document.getElementById('settingsModal').style.display = 'block';
 }
 function closeSettings() {
@@ -1299,7 +1395,9 @@ function closeSettings() {
 }
 function saveSettings() {
   const val = document.getElementById('gasUrlInput').value.trim();
+  const voiceVal = document.getElementById('voiceSelect').value;
   localStorage.setItem('gas_web_app_url', val);
+  if (voiceVal) localStorage.setItem('selected_voice_name', voiceVal);
   closeSettings();
   loadData();
 }
