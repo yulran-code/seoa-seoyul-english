@@ -245,7 +245,6 @@
       font-weight: 900;
       box-shadow: 0 1px 3px rgba(234, 179, 8, 0.45);
     }
-    /* ★ 관리자 검수 모드(?mode=review) 전용 끊어읽기 시각 배지 */
     .review-chunk-slash {
       display: inline-block;
       margin: 0 4px;
@@ -331,12 +330,40 @@
       text-align: center;
     }
 
-    /* 섹션 제목 & 기타 카드 */
-    .sec-title { font-size: 14.5px; font-weight: 800; margin: 0 0 10px; display: flex; align-items: center; gap: 5px; }
-    .vocab-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 7px; }
-    .vocab-item { background: #f8fafc; border: 1px solid var(--border); border-radius: 9px; padding: 8px 11px; cursor: pointer; }
-    .vocab-word { font-weight: 800; color: var(--primary); font-size: 14px; }
-    .vocab-mean { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    /* 섹션 헤더 & 어휘/표현 카드 */
+    .sec-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .sec-title { font-size: 14.5px; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 5px; }
+    .vocab-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 7px; }
+    .vocab-item {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 9px 11px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    .vocab-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+    }
+    .vocab-word { font-weight: 800; color: var(--primary); font-size: 14px; cursor: pointer; }
+    .vocab-mean {
+      font-size: 12px;
+      color: var(--muted);
+      padding-top: 5px;
+      border-top: 1px dashed #cbd5e1;
+    }
     .phrase-list { display: flex; flex-direction: column; gap: 7px; }
     .phrase-item {
       background: #f8fafc;
@@ -344,11 +371,22 @@
       border-radius: 9px;
       padding: 9px 11px;
       display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 13.5px;
+    }
+    .phrase-top-row {
+      display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 8px;
-      cursor: pointer;
-      font-size: 13.5px;
+      flex-wrap: wrap;
+    }
+    .phrase-ko {
+      color: var(--muted);
+      font-size: 12.5px;
+      padding-top: 5px;
+      border-top: 1px dashed #cbd5e1;
     }
 
     /* 퀴즈 */
@@ -491,27 +529,33 @@
     </div>
 
     <div class="card">
-      <h3 class="sec-title">💡 오늘의 핵심 어휘 (클릭하면 발음 재생)</h3>
+      <div class="sec-header-row">
+        <h3 class="sec-title">💡 오늘의 핵심 어휘</h3>
+        <button class="btn" onclick="toggleAllVocabMean()" id="allVocabBtn">🇰🇷 전체 뜻 보기</button>
+      </div>
       <div class="vocab-grid" id="vocabGrid"></div>
     </div>
 
     <div class="card">
-      <h3 class="sec-title">✨ 꼭 기억할 핵심 표현</h3>
+      <div class="sec-header-row">
+        <h3 class="sec-title">✨ 꼭 기억할 핵심 표현</h3>
+        <button class="btn" onclick="toggleAllPhraseKo()" id="allPhraseBtn">🇰🇷 전체 해석 보기</button>
+      </div>
       <div class="phrase-list" id="phraseList"></div>
     </div>
 
     <div class="card">
-      <h3 class="sec-title">🧩 이해도 확인 퀴즈</h3>
+      <h3 class="sec-title" style="margin-bottom:10px;">🧩 이해도 확인 퀴즈</h3>
       <div id="quizList"></div>
     </div>
 
     <div class="card">
-      <h3 class="sec-title">🗣️ 나도 주인공처럼 말해보기 (따라 읽기 & 녹음)</h3>
+      <h3 class="sec-title" style="margin-bottom:10px;">🗣️ 나도 주인공처럼 말해보기 (따라 읽기 & 녹음)</h3>
       <div id="speakingList"></div>
     </div>
 
     <div class="card">
-      <h3 class="sec-title">🏆 오늘의 학습 완료 체크</h3>
+      <h3 class="sec-title" style="margin-bottom:10px;">🏆 오늘의 학습 완료 체크</h3>
       <div class="complete-bar" id="completeBar"></div>
       <div id="celebrationBanner" class="celebration-banner hidden">
         🎉 축하합니다! 오늘의 학습 3단계를 모두 완료했어요!
@@ -521,7 +565,7 @@
 
   <div id="boardView" class="hidden">
     <div class="card">
-      <h3 class="sec-title">📊 우리 가족 날짜별 학습 완료 현황표</h3>
+      <h3 class="sec-title" style="margin-bottom:10px;">📊 우리 가족 날짜별 학습 완료 현황표</h3>
       <p style="font-size:12.5px;color:var(--muted);margin-top:0;">읽기 · 퀴즈 · 말하기 3단계를 모두 누르면 <strong>✅ 완료</strong>로 표시됩니다.</p>
       <div style="overflow-x:auto;">
         <table class="board-table" id="progressBoardTable"></table>
@@ -596,6 +640,8 @@ let stories = [];
 let currentStoryIdx = 0;
 let progressData = JSON.parse(localStorage.getItem('backup_progress') || '{}');
 let showAllKo = false;
+let showAllVocabMean = false;
+let showAllPhraseKo = false;
 let speechRate = 1.0;
 let stepPlayCancel = false;
 const isReviewMode = new URLSearchParams(window.location.search).get('mode') === 'review';
@@ -728,7 +774,11 @@ function selectEpisode(idx) {
   recordedAudioUrls = {};
   currentStoryIdx = idx;
   showAllKo = false;
+  showAllVocabMean = false;
+  showAllPhraseKo = false;
   document.getElementById('allKoBtn').textContent = '🇰🇷 전체 해석 보기';
+  document.getElementById('allVocabBtn').textContent = '🇰🇷 전체 뜻 보기';
+  document.getElementById('allPhraseBtn').textContent = '🇰🇷 전체 해석 보기';
   renderUserTabs();
   renderEpisodeBar();
   renderStory();
@@ -916,20 +966,31 @@ function renderStory() {
     </div>
   `).join('');
 
+  // ★ 오늘의 핵심 어휘 (뜻 숨김 기본 + 개별/전체 토글 버튼)
   const vGrid = document.getElementById('vocabGrid');
   const vocabEntries = Object.entries(lvData.vocab || {});
-  vGrid.innerHTML = vocabEntries.map(([word, mean]) => `
-    <div class="vocab-item" onclick="speakText('${word.replace(/'/g, "\\'")}')">
-      <div class="vocab-word">🔊 ${word}</div>
-      <div class="vocab-mean">${mean}</div>
+  vGrid.innerHTML = vocabEntries.map(([word, mean], vIdx) => `
+    <div class="vocab-item">
+      <div class="vocab-top-row">
+        <div class="vocab-word" onclick="speakText('${word.replace(/'/g, "\\'")}')">🔊 ${word}</div>
+        <button class="mini-btn" onclick="toggleSingleVocabMean(${vIdx})">뜻 보기</button>
+      </div>
+      <div class="vocab-mean ${showAllVocabMean ? '' : 'hidden'}" id="vocab-mean-${vIdx}">${mean}</div>
     </div>
   `).join('');
 
+  // ★ 꼭 기억할 핵심 표현 (한글 해석 숨김 기본 + 개별/전체 토글 버튼)
   const pList = document.getElementById('phraseList');
-  pList.innerHTML = (lvData.phrases || []).map(p => `
-    <div class="phrase-item" onclick="speakText('${p.en.replace(/'/g, "\\'")}')">
-      <div><strong>🔊 ${p.en}</strong></div>
-      <div style="color:var(--muted);font-size:12.5px;">${p.ko}</div>
+  pList.innerHTML = (lvData.phrases || []).map((p, pIdx) => `
+    <div class="phrase-item">
+      <div class="phrase-top-row">
+        <div style="cursor:pointer;font-weight:700;" onclick="speakText('${p.en.replace(/'/g, "\\'")}')">🔊 ${p.en}</div>
+        <div style="display:flex;gap:4px;">
+          <button class="mini-btn" onclick="speakText('${p.en.replace(/'/g, "\\'")}')">🔊 듣기</button>
+          <button class="mini-btn" onclick="toggleSinglePhraseKo(${pIdx})">한글해석</button>
+        </div>
+      </div>
+      <div class="phrase-ko ${showAllPhraseKo ? '' : 'hidden'}" id="phrase-ko-${pIdx}">${p.ko}</div>
     </div>
   `).join('');
 
@@ -950,7 +1011,31 @@ function renderStory() {
   renderCompleteBar();
 }
 
-// ★ 한국어 인물 이름 TTS 발음 교정 (화면 철자는 유지하고 소리만 "비실", "이슬" 등으로 교정)
+function toggleSingleVocabMean(vIdx) {
+  document.getElementById(`vocab-mean-${vIdx}`).classList.toggle('hidden');
+}
+
+function toggleAllVocabMean() {
+  showAllVocabMean = !showAllVocabMean;
+  document.getElementById('allVocabBtn').textContent = showAllVocabMean ? '🙈 전체 뜻 숨기기' : '🇰🇷 전체 뜻 보기';
+  document.querySelectorAll('.vocab-mean').forEach(el => {
+    el.classList.toggle('hidden', !showAllVocabMean);
+  });
+}
+
+function toggleSinglePhraseKo(pIdx) {
+  document.getElementById(`phrase-ko-${pIdx}`).classList.toggle('hidden');
+}
+
+function toggleAllPhraseKo() {
+  showAllPhraseKo = !showAllPhraseKo;
+  document.getElementById('allPhraseBtn').textContent = showAllPhraseKo ? '🙈 전체 해석 숨기기' : '🇰🇷 전체 해석 보기';
+  document.querySelectorAll('.phrase-ko').forEach(el => {
+    el.classList.toggle('hidden', !showAllPhraseKo);
+  });
+}
+
+// ★ 한국어 인물 이름 TTS 발음 교정 (Beeseel -> "비실", Eesul -> "이슬")
 function normalizePronunciation(text) {
   return text
     .replace(/\bBisil('s)?\b/gi, (_, s) => `Beeseel${s || ''}`)
@@ -1001,7 +1086,7 @@ function previewSelectedVoice() {
   const sel = document.getElementById('voiceSelect');
   const voices = getEnglishVoicesList();
   const chosen = voices.find(v => v.name === sel.value);
-  const u = new SpeechSynthesisUtterance("Hello! Beesil and Eesul are reading today's story together.");
+  const u = new SpeechSynthesisUtterance("Hello! Beeseel and Eesul are reading today's story together.");
   if (chosen) u.voice = chosen;
   u.lang = 'en-US';
   u.rate = speechRate;
@@ -1024,7 +1109,6 @@ function createUtterance(text, customRate) {
   return u;
 }
 
-// ★ 삼성 태블릿용 순차 발화 안전 헬퍼 (오디오 버퍼 겹침 및 조기 onend 방지)
 function speakChunkSafely(text, rate, isCancelledFn) {
   return new Promise(resolve => {
     if (isCancelledFn()) return resolve();
