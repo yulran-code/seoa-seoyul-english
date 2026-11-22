@@ -457,39 +457,32 @@
       align-items: center;
     }
 
+    /* 좌측 아이콘 제거 & 왼쪽 정렬 문장 카드 */
     .sentence-list { display: flex; flex-direction: column; gap: 9px; }
     .sentence-card {
       background: #f8fafc;
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 10px 12px;
+      padding: 11px 12px;
       transition: all 0.15s;
+      text-align: left;
     }
     .sentence-card.speaking { background: #fef9c3; border-color: #eab308; }
     .sentence-card.rec-done { border-left: 4px solid var(--success); }
-    .sentence-row { display: flex; align-items: center; gap: 11px; }
-    .scene-visual {
-      width: 48px;
-      height: 48px;
-      border-radius: 11px;
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
+    .sentence-top {
       display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 25px;
-      flex-shrink: 0;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 7px;
+      width: 100%;
     }
-    .sentence-body { flex: 1; min-width: 0; }
-    .sentence-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; flex-wrap: wrap; }
     .sentence-en {
       font-size: 15.5px;
       font-weight: 600;
       color: #0f172a;
-      line-height: 1.85;
-      flex: 1;
-      min-width: 190px;
+      line-height: 1.75;
+      width: 100%;
+      word-break: keep-all;
     }
     .word-token {
       display: inline-block;
@@ -533,16 +526,24 @@
       cursor: pointer;
       font-weight: 700;
     }
-    .sentence-actions { display: flex; gap: 4px; flex-shrink: 0; flex-wrap: wrap; }
+    .sentence-actions {
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      gap: 5px;
+      flex-wrap: wrap;
+      width: 100%;
+    }
     .mini-btn {
       background: #fff;
       border: 1px solid #cbd5e1;
       border-radius: 7px;
-      padding: 4px 7px;
-      font-size: 11px;
+      padding: 4px 8px;
+      font-size: 11.5px;
       font-weight: 700;
       color: #475569;
       cursor: pointer;
+      white-space: nowrap;
     }
     .mini-btn:hover { background: #e2e8f0; }
     .mini-btn.word-mode {
@@ -572,7 +573,7 @@
       color: #059669;
     }
     .sentence-ko {
-      margin-top: 7px;
+      margin-top: 8px;
       padding-top: 7px;
       border-top: 1px dashed #cbd5e1;
       font-size: 13.5px;
@@ -1139,7 +1140,7 @@ async function loadData() {
     const params = new URLSearchParams();
     if (isReviewMode) params.set('mode', 'review');
     if (currentUser) params.set('user', currentUser);
-    params.set('_t', String(Date.now())); // 캐시 방지
+    params.set('_t', String(Date.now()));
     const fetchUrl = `${gasUrl}?${params.toString()}`;
 
     const res = await fetch(fetchUrl, { cache: 'no-store' });
@@ -1683,26 +1684,6 @@ function selectEpisode(idx) {
   renderStory();
 }
 
-function getSceneIcon(sentenceObj) {
-  if (sentenceObj.icon) return sentenceObj.icon;
-  const t = sentenceObj.en.toLowerCase();
-  if (t.includes('bread') || t.includes('loaf') || t.includes('slice')) return '🍞';
-  if (t.includes('cake') || t.includes('bakery') || t.includes('patisserie') || t.includes('pastr')) return '🍰';
-  if (t.includes('diamond') || t.includes('jewel') || t.includes('gem')) return '💎';
-  if (t.includes('mirror') || t.includes('reflect')) return '🪞';
-  if (t.includes('test') || t.includes('exam') || t.includes('notebook') || t.includes('textbook') || t.includes('study')) return '📝';
-  if (t.includes('stomach') || t.includes('indigestion') || t.includes('bathroom') || t.includes('restroom')) return '😣';
-  if (t.includes('laugh') || t.includes('smile') || t.includes('happy') || t.includes('joy')) return '😊';
-  if (t.includes('embarrassed') || t.includes('shame') || t.includes('red') || t.includes('hide') || t.includes('hid')) return '😳';
-  if (t.includes('thief') || t.includes('culprit') || t.includes('catch') || t.includes('police') || t.includes('guard')) return '🕵️';
-  if (t.includes('flashlight') || t.includes('magnifying') || t.includes('clue') || t.includes('examine') || t.includes('spot')) return '🔍';
-  if (t.includes('pocket') || t.includes('gadget') || t.includes('magic')) return '🔮';
-  if (t.includes('water') || t.includes('window')) return '🥤';
-  if (t.includes('note') || t.includes('letter') || t.includes('music') || t.includes('piano')) return '🎹';
-  if (t.includes('scary') || t.includes('fear') || t.includes('flinch') || t.includes('alarm') || t.includes('shout')) return '😨';
-  return '📖';
-}
-
 function getSentenceChunks(sentenceObj) {
   const words = sentenceObj.en.split(/\s+/);
   if (Array.isArray(sentenceObj.chunks) && sentenceObj.chunks.length > 0) {
@@ -1900,29 +1881,24 @@ function renderSentenceCards(lvData, isChildMode) {
     const hasAudio = !!sentRecordUrls[idx];
     return `
       <div class="sentence-card ${hasAudio ? 'rec-done' : ''}" id="sent-card-${idx}">
-        <div class="sentence-row">
-          <div class="scene-visual" title="상황 그림">${getSceneIcon(s)}</div>
-          <div class="sentence-body">
-            <div class="sentence-top">
-              <div class="sentence-en">${formatSentenceHtml(s, lvData.vocab, idx)}</div>
-              <div class="sentence-actions">
-                ${isChildMode ? `
-                  <button class="mini-btn word-mode" onclick="playWordByWord(${idx})">🔤 단어별</button>
-                  <button class="mini-btn chunk-mode" onclick="playBySemanticChunks(${idx})">✂️ 의미끊기</button>
-                ` : ''}
-                <button class="mini-btn" onclick="speakSingle(${idx})">🔊 듣기</button>
-                <button class="mini-btn rec-btn ${isRec ? 'recording' : ''} ${hasAudio && !isRec ? 'rec-done-btn' : ''}" onclick="toggleRecord('sent', ${idx})">
-                  ${isRec ? '⏹ 중지' : (hasAudio ? '✅ 재녹음' : '🎤 녹음')}
-                </button>
-                ${hasAudio ? `<button class="mini-btn rec-done-btn" onclick="playMyRecording('sent', ${idx})">▶️ 내발음</button>` : ''}
-                <button class="mini-btn" onclick="toggleSingleKo(${idx})">해석</button>
-              </div>
-            </div>
-            <div class="sentence-ko ${showAllKo ? '' : 'hidden'}" id="sent-ko-${idx}">
-              <div>${s.ko}</div>
-              ${s.note ? `<div class="nuance-note">${s.note}</div>` : ''}
-            </div>
+        <div class="sentence-top">
+          <div class="sentence-en">${formatSentenceHtml(s, lvData.vocab, idx)}</div>
+          <div class="sentence-actions">
+            ${isChildMode ? `
+              <button class="mini-btn word-mode" onclick="playWordByWord(${idx})">🔤 단어별</button>
+              <button class="mini-btn chunk-mode" onclick="playBySemanticChunks(${idx})">✂️ 의미끊기</button>
+            ` : ''}
+            <button class="mini-btn" onclick="speakSingle(${idx})">🔊 듣기</button>
+            <button class="mini-btn rec-btn ${isRec ? 'recording' : ''} ${hasAudio && !isRec ? 'rec-done-btn' : ''}" onclick="toggleRecord('sent', ${idx})">
+              ${isRec ? '⏹ 중지' : (hasAudio ? '✅ 재녹음' : '🎤 녹음')}
+            </button>
+            ${hasAudio ? `<button class="mini-btn rec-done-btn" onclick="playMyRecording('sent', ${idx})">▶️ 내발음</button>` : ''}
+            <button class="mini-btn" onclick="toggleSingleKo(${idx})">해석</button>
           </div>
+        </div>
+        <div class="sentence-ko ${showAllKo ? '' : 'hidden'}" id="sent-ko-${idx}">
+          <div>${s.ko}</div>
+          ${s.note ? `<div class="nuance-note">${s.note}</div>` : ''}
         </div>
       </div>
     `;
@@ -2076,7 +2052,6 @@ async function playAllSentences() {
   const lvData = story.levels[currentLevel] || story.levels.lv3;
   if (!lvData) return;
 
-  // Gemini AI 성우 WAV/MP3가 연결되어 있으면 실제 오디오 플레이어로 백그라운드 연속 재생
   if (lvData.audio && lvData.audio.fileId) {
     const blobUrl = await getAiAudioBlobUrl(lvData.audio.fileId);
     if (blobUrl) {
@@ -2099,7 +2074,6 @@ async function playAllSentences() {
     }
   }
 
-  // 오디오가 아직 생성 전인 회차는 기존 브라우저 TTS 폴백 재생
   const list = lvData.sentences;
   let idx = 0;
   function next() {
@@ -2128,7 +2102,6 @@ async function speakSingle(idx) {
   const card = document.getElementById(`sent-card-${idx}`);
   if (card) card.classList.add('speaking');
 
-  // Gemini AI 성우 오디오와 문장 타임스탬프가 있으면 해당 문장 구간만 정밀 재생
   if (lvData.audio && lvData.audio.fileId && Array.isArray(lvData.audio.timings) && lvData.audio.timings[idx]) {
     const blobUrl = await getAiAudioBlobUrl(lvData.audio.fileId);
     if (blobUrl) {
