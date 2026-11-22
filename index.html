@@ -106,6 +106,36 @@
       font-weight: 700;
     }
 
+    /* 나만의 비공개 아티클 카테고리 전환 바 (엄마 전용) */
+    .category-switch-bar {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .cat-btn {
+      background: #fff;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 13.5px;
+      font-weight: 800;
+      color: #475569;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: center;
+    }
+    .cat-btn.active {
+      border-color: #0f172a;
+      background: #0f172a;
+      color: #fff;
+    }
+    .cat-btn.private-cat.active {
+      border-color: #6d28d9;
+      background: #5b21b6;
+      color: #fff;
+    }
+
     /* 순수 레벨 선택 탭 */
     .level-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
     .level-tab {
@@ -354,7 +384,7 @@
       font-weight: 600;
       color: var(--text);
       cursor: pointer;
-      max-width: 220px;
+      max-width: 240px;
     }
 
     /* 메인 카드 */
@@ -782,6 +812,12 @@
 
     <!-- 1. 오늘의 학습 뷰 -->
     <div id="studyView">
+      <!-- 비공개 아티클이 있는 사용자(엄마)에게만 표시되는 카테고리 전환 바 -->
+      <div id="categorySwitchBar" class="category-switch-bar hidden">
+        <button type="button" id="catPublicBtn" class="cat-btn active" onclick="switchStoryCategory('public')">📚 가족 스토리 (코난·도라에몽·향꽃)</button>
+        <button type="button" id="catPrivateBtn" class="cat-btn private-cat" onclick="switchStoryCategory('private')">✝️ 나만의 묵상 아티클 (팀 켈러)</button>
+      </div>
+
       <div class="level-tabs" id="levelTabs"></div>
       <div class="episode-nav-wrap" id="episodeBar"></div>
 
@@ -831,7 +867,7 @@
       </div>
 
       <div class="card">
-        <h3 class="sec-title" style="margin-bottom:10px;">🗣️ 나도 주인공처럼 말해보기 (전 문장 녹음 시 자동 완료)</h3>
+        <h3 class="sec-title" style="margin-bottom:10px;">🗣️ 소리 내어 따라 말하기 (전 문장 녹음 시 자동 완료)</h3>
         <div id="speakingList"></div>
       </div>
 
@@ -860,7 +896,7 @@
       </div>
     </div>
 
-    <!-- 3. 내 학습 현황 & 내 포인트 대시보드 뷰 (다른 사람 정보 비공개) -->
+    <!-- 3. 내 학습 현황 & 내 포인트 대시보드 뷰 -->
     <div id="boardView" class="hidden">
       <div class="card">
         <h3 class="sec-title" id="myPointSectionTitle" style="margin-bottom:10px;">🪙 나의 포인트 · 연속 학습 현황</h3>
@@ -1011,8 +1047,9 @@ let currentUser = localStorage.getItem('logged_in_user') || '';
 let selectedLoginUser = 'seoa';
 let newUserLevel = 'lv1';
 let currentLevel = 'lv1';
+let activeCategory = 'public'; // 'public' | 'private'
 
-let stories = [];
+let allStories = [];
 let currentStoryIdx = 0;
 let progressData = JSON.parse(localStorage.getItem('backup_progress') || '{}');
 let rewardsList = [];
@@ -1045,6 +1082,20 @@ function getTodayKstStr() {
   return `${y}-${m}-${d}`;
 }
 
+function getFilteredStories() {
+  if (activeCategory === 'private') {
+    return allStories.filter(s => s.owner === currentUser);
+  }
+  return allStories.filter(s => !s.owner || s.owner === 'public');
+}
+
+function getCurrentStory() {
+  const list = getFilteredStories();
+  if (!list.length) return null;
+  if (currentStoryIdx >= list.length) currentStoryIdx = 0;
+  return list[currentStoryIdx];
+}
+
 window.addEventListener('DOMContentLoaded', async () => {
   if (isReviewMode) {
     document.getElementById('reviewTopBar').classList.remove('hidden');
@@ -1068,7 +1119,12 @@ async function loadData() {
     return;
   }
   try {
-    const fetchUrl = isReviewMode ? `${gasUrl}?mode=review` : gasUrl;
+    const params = new URLSearchParams();
+    if (isReviewMode) params.set('mode', 'review');
+    if (currentUser) params.set('user', currentUser);
+    const qs = params.toString();
+    const fetchUrl = qs ? `${gasUrl}?${qs}` : gasUrl;
+
     const res = await fetch(fetchUrl);
     const data = await res.json();
     if (data.status === 'ok') {
@@ -1078,7 +1134,7 @@ async function loadData() {
           selectedLoginUser = usersList[0].id;
         }
       }
-      stories = data.stories || [];
+      allStories = data.stories || [];
       rewardsList = data.rewards || [];
       redemptionsList = data.redemptions || [];
       if (data.progress) {
@@ -1122,7 +1178,7 @@ function chooseLoginUser(userId) {
   }
 }
 
-function submitLogin() {
+async function submitLogin() {
   const pinVal = document.getElementById('pinInput').value.trim();
   const target = usersList.find(u => u.id === selectedLoginUser);
   const errEl = document.getElementById('loginErrorMsg');
@@ -1140,11 +1196,15 @@ function submitLogin() {
   document.getElementById('pinInput').value = '';
   currentUser = target.id;
   localStorage.setItem('logged_in_user', currentUser);
+  activeCategory = 'public';
+  currentStoryIdx = 0;
   currentLevel = target.defaultLevel || 'lv1';
   speechRate = currentLevel === 'lv1' ? 0.85 : 1.0;
   document.getElementById('speedBtn').textContent = `속도 ${speechRate}x`;
   resetSessionTrackers();
-  updateAuthView();
+
+  // 로그인한 사용자 전용 비공개 아티클까지 서버에서 새로 불러오기
+  await loadData();
 }
 
 function openAddUserModal() {
@@ -1218,6 +1278,8 @@ async function submitNewUser() {
   selectedLoginUser = newUserObj.id;
   currentUser = newUserObj.id;
   localStorage.setItem('logged_in_user', currentUser);
+  activeCategory = 'public';
+  currentStoryIdx = 0;
   currentLevel = newUserObj.defaultLevel;
   speechRate = currentLevel === 'lv1' ? 0.85 : 1.0;
   document.getElementById('speedBtn').textContent = `속도 ${speechRate}x`;
@@ -1231,12 +1293,14 @@ async function submitNewUser() {
   alert(`🎉 환영합니다, ${newUserObj.name} 님!\n다음에 로그인할 때 비밀번호 [${newUserObj.pin}]을 입력해 주세요.`);
 }
 
-function logoutUser() {
+async function logoutUser() {
   stopSpeech();
   currentUser = '';
+  activeCategory = 'public';
+  currentStoryIdx = 0;
   localStorage.removeItem('logged_in_user');
   resetSessionTrackers();
-  updateAuthView();
+  await loadData();
 }
 
 function updateAuthView() {
@@ -1250,9 +1314,28 @@ function updateAuthView() {
   document.getElementById('tabBoardBtn').classList.toggle('hidden', !isLoggedIn);
 
   if (isLoggedIn) {
-    if (!LEVELS.some(l => l.id === currentLevel)) {
-      currentLevel = userObj.defaultLevel || 'lv1';
+    // 현재 로그인한 사용자에게 비공개(owner === currentUser) 아티클이 존재할 때만 카테고리 전환 바 노출
+    const hasPrivateStories = allStories.some(s => s.owner === currentUser);
+    const catBar = document.getElementById('categorySwitchBar');
+    if (catBar) {
+      catBar.classList.toggle('hidden', !hasPrivateStories);
+      if (!hasPrivateStories) activeCategory = 'public';
+      document.getElementById('catPublicBtn').classList.toggle('active', activeCategory === 'public');
+      document.getElementById('catPrivateBtn').classList.toggle('active', activeCategory === 'private');
     }
+
+    // 비공개 팀 켈러 아티클 탭에서는 Lv.3(A2~B1) 단독 고정
+    const lvTabsEl = document.getElementById('levelTabs');
+    if (activeCategory === 'private') {
+      currentLevel = 'lv3';
+      if (lvTabsEl) lvTabsEl.classList.add('hidden');
+    } else {
+      if (lvTabsEl) lvTabsEl.classList.remove('hidden');
+      if (!LEVELS.some(l => l.id === currentLevel)) {
+        currentLevel = userObj.defaultLevel || 'lv1';
+      }
+    }
+
     renderProfileBanner();
     renderLevelTabs();
     renderEpisodeBar();
@@ -1260,6 +1343,14 @@ function updateAuthView() {
     renderRewardShop();
     renderProgressBoard();
   }
+}
+
+function switchStoryCategory(cat) {
+  stopSpeech();
+  resetSessionTrackers();
+  activeCategory = cat;
+  currentStoryIdx = 0;
+  updateAuthView();
 }
 
 function resetSessionTrackers() {
@@ -1283,8 +1374,8 @@ function switchMainView(view) {
   if (view === 'board') renderProgressBoard();
 }
 
-function isDateCompleted(userId, dateStr) {
-  const p = progressData[userId]?.[dateStr];
+function isStoryCompleted(userId, progressKey) {
+  const p = progressData[userId]?.[progressKey];
   return !!(p && p.read && p.quiz && p.speak);
 }
 
@@ -1298,25 +1389,36 @@ function getStreakMilestoneBonus(streakCount) {
 
 function calculateUserStats(userId) {
   const userProg = progressData[userId] || {};
-  const completedDates = Object.keys(userProg)
-    .filter(d => isDateCompleted(userId, d))
+  const completedKeys = Object.keys(userProg)
+    .filter(k => isStoryCompleted(userId, k))
     .sort();
 
-  const totalCompletedCount = completedDates.length;
+  const totalCompletedCount = completedKeys.length;
   const basePoints = totalCompletedCount * 10;
   const cumulativeBonusPoints = Math.floor(totalCompletedCount / 10) * 10;
 
-  const onTimeDates = completedDates.filter(d => {
-    const comp = userProg[d].completedDate;
-    return !comp || comp === d;
-  });
-  const reviewCount = totalCompletedCount - onTimeDates.length;
+  // 같은 날짜에 일반 스토리와 비공개 묵상글을 모두 완료해도 연속 일수(Streak)는 하루 1회로 정확히 합산
+  const onTimeBaseDateSet = new Set();
+  let reviewCount = 0;
+
+  for (const key of completedKeys) {
+    const baseDate = key.split('_')[0];
+    const comp = userProg[key].completedDate;
+    if (!comp || comp === baseDate) {
+      onTimeBaseDateSet.add(baseDate);
+    } else {
+      reviewCount += 1;
+    }
+  }
+
+  const onTimeUniqueDates = Array.from(onTimeBaseDateSet).sort();
+  const onTimeCount = totalCompletedCount - reviewCount;
 
   let streakBonusPoints = 0;
   let runningStreak = 0;
   let prevDateMs = null;
 
-  for (const dateStr of onTimeDates) {
+  for (const dateStr of onTimeUniqueDates) {
     const [y, m, d] = dateStr.split('-').map(Number);
     const currDateMs = Date.UTC(y, m - 1, d);
     if (prevDateMs !== null && (currDateMs - prevDateMs) === 86400000) {
@@ -1329,8 +1431,8 @@ function calculateUserStats(userId) {
   }
 
   let activeStreak = 0;
-  if (onTimeDates.length > 0) {
-    const lastStr = onTimeDates[onTimeDates.length - 1];
+  if (onTimeUniqueDates.length > 0) {
+    const lastStr = onTimeUniqueDates[onTimeUniqueDates.length - 1];
     const [ly, lm, ld] = lastStr.split('-').map(Number);
     const lastMs = Date.UTC(ly, lm - 1, ld);
 
@@ -1359,7 +1461,7 @@ function calculateUserStats(userId) {
 
   return {
     totalCompletedCount,
-    onTimeCount: onTimeDates.length,
+    onTimeCount,
     reviewCount,
     basePoints,
     cumulativeBonusPoints,
@@ -1381,8 +1483,9 @@ function renderProfileBanner() {
   const userObj = usersList.find(u => u.id === currentUser);
   if (!banner || !userObj) return;
 
-  const activeDate = stories[currentStoryIdx]?.date;
-  const done = activeDate && isDateCompleted(userObj.id, activeDate);
+  const activeStory = getCurrentStory();
+  const activeKey = activeStory ? (activeStory.progressKey || activeStory.date) : '';
+  const done = activeKey && isStoryCompleted(userObj.id, activeKey);
   const stats = calculateUserStats(userObj.id);
 
   banner.innerHTML = `
@@ -1530,14 +1633,16 @@ function selectLevel(lvId) {
 
 function renderEpisodeBar() {
   const bar = document.getElementById('episodeBar');
+  const stories = getFilteredStories();
   if (!stories.length) {
-    bar.innerHTML = '<div style="font-size:13px;color:var(--muted);">아직 등록된 스토리가 없습니다.</div>';
+    bar.innerHTML = '<div style="font-size:13px;color:var(--muted);">이 카테고리에 아직 등록된 글이 없습니다.</div>';
     return;
   }
 
   const recentStories = stories.slice(0, 3);
   const chipsHtml = recentStories.map((st, idx) => {
-    const done = isDateCompleted(currentUser, st.date);
+    const pKey = st.progressKey || st.date;
+    const done = isStoryCompleted(currentUser, pKey);
     const sched = st.isScheduled ? ' 🔒' : '';
     const dayLabel = idx === 0 ? '최신 · ' : '';
     return `
@@ -1551,7 +1656,8 @@ function renderEpisodeBar() {
   const dropdownHtml = stories.length > 1 ? `
     <select class="ep-select" onchange="selectEpisode(Number(this.value))" aria-label="전체 회차 선택">
       ${stories.map((st, idx) => {
-        const done = isDateCompleted(currentUser, st.date) ? ' [완료]' : '';
+        const pKey = st.progressKey || st.date;
+        const done = isStoryCompleted(currentUser, pKey) ? ' [완료]' : '';
         const sched = st.isScheduled ? ' [예약]' : '';
         return `<option value="${idx}" ${idx === currentStoryIdx ? 'selected' : ''}>📅 ${st.date} · ${st.title}${sched}${done}</option>`;
       }).join('')}
@@ -1702,15 +1808,26 @@ function showWordPopup(word, meaning) {
 }
 
 function renderStory() {
-  const story = stories[currentStoryIdx];
-  if (!story) return;
+  const story = getCurrentStory();
+  if (!story) {
+    document.getElementById('storyTitle').textContent = '등록된 아티클이 없습니다.';
+    document.getElementById('storyMeta').textContent = '';
+    document.getElementById('sentenceList').innerHTML = '';
+    document.getElementById('vocabGrid').innerHTML = '';
+    document.getElementById('phraseList').innerHTML = '';
+    document.getElementById('quizList').innerHTML = '';
+    document.getElementById('speakingList').innerHTML = '';
+    return;
+  }
 
   const lvObj = LEVELS.find(l => l.id === currentLevel);
   const isChildMode = currentLevel === 'lv1' || currentLevel === 'lv2';
-  const lvData = story.levels[currentLevel];
+  const lvData = story.levels[currentLevel] || story.levels.lv3;
 
   document.getElementById('storyTitle').textContent = story.title;
-  document.getElementById('storyMeta').textContent = `${story.date} · ${lvObj.title} (${lvObj.desc})`;
+  document.getElementById('storyMeta').textContent = activeCategory === 'private'
+    ? `${story.date} · 🔒 나만의 A2~B1 묵상 아티클`
+    : `${story.date} · ${lvObj.title} (${lvObj.desc})`;
 
   document.getElementById('legendBar').innerHTML = isChildMode
     ? `
@@ -1722,13 +1839,13 @@ function renderStory() {
     `
     : `
       <span class="legend-item">🎤 <strong>문장 녹음</strong>: 전 문장 녹음 시 읽기 자동 완료</span>
-      <span class="legend-item"><span class="char-name">인물이름</span> 등장인물</span>
       <span class="legend-item"><span class="vocab-highlight">핵심단어</span> 터치하면 뜻 & 발음</span>
+      <span class="legend-item">🇰🇷 <strong>해석</strong>: 문장별 뜻 & 핵심 구문 노트 확인</span>
       ${isReviewMode ? '<span class="legend-item"><span class="review-chunk-slash">/</span> 관리자 검수용 끊어읽기</span>' : ''}
     `;
 
   if (!lvData) {
-    document.getElementById('sentenceList').innerHTML = '<div style="color:var(--muted);padding:12px;">이 난이도의 스토리가 아직 생성 중입니다.</div>';
+    document.getElementById('sentenceList').innerHTML = '<div style="color:var(--muted);padding:12px;">이 난이도의 본문이 아직 생성 중입니다.</div>';
     return;
   }
 
@@ -1951,7 +2068,7 @@ async function playWordByWord(sentIdx) {
   window._currentStepRunId = runId;
   const isCancelled = () => stepPlayCancel || window._currentStepRunId !== runId;
 
-  const story = stories[currentStoryIdx];
+  const story = getCurrentStory();
   const sentence = story.levels[currentLevel].sentences[sentIdx].en;
   const words = sentence.split(/\s+/);
 
@@ -1993,7 +2110,7 @@ async function playBySemanticChunks(sentIdx) {
   window._currentStepRunId = runId;
   const isCancelled = () => stepPlayCancel || window._currentStepRunId !== runId;
 
-  const story = stories[currentStoryIdx];
+  const story = getCurrentStory();
   const sentenceObj = story.levels[currentLevel].sentences[sentIdx];
   const words = sentenceObj.en.split(/\s+/);
   const chunks = getSentenceChunks(sentenceObj);
@@ -2059,8 +2176,9 @@ function renderSpeakingList(speakingArr, isChildMode) {
 }
 
 async function toggleRecord(type, idx) {
-  const story = stories[currentStoryIdx];
-  const lvData = story.levels[currentLevel];
+  const story = getCurrentStory();
+  if (!story) return;
+  const lvData = story.levels[currentLevel] || story.levels.lv3;
   const isChildMode = currentLevel === 'lv1' || currentLevel === 'lv2';
 
   if (activeRecorder && activeRecorder.state === 'recording') {
@@ -2129,7 +2247,7 @@ function checkQuiz(btn, qIdx, selectedIdx, correctIdx) {
   if (selectedIdx === correctIdx) {
     btn.classList.add('correct');
     fbEl.classList.add('ok');
-    fbEl.textContent = '🎉 정답입니다! 스토리 내용을 아주 정확하게 이해했네요!';
+    fbEl.textContent = '🎉 정답입니다! 내용을 아주 정확하게 이해했네요!';
     quizSolvedMap[qIdx] = true;
   } else {
     btn.classList.add('wrong');
@@ -2141,12 +2259,13 @@ function checkQuiz(btn, qIdx, selectedIdx, correctIdx) {
 }
 
 async function checkAutoCompletion() {
-  const story = stories[currentStoryIdx];
+  const story = getCurrentStory();
   if (!story || !currentUser) return;
-  const lvData = story.levels[currentLevel];
+  const lvData = story.levels[currentLevel] || story.levels.lv3;
   if (!lvData) return;
 
-  const p = progressData[currentUser]?.[story.date] || { read: false, quiz: false, speak: false };
+  const pKey = story.progressKey || story.date;
+  const p = progressData[currentUser]?.[pKey] || { read: false, quiz: false, speak: false };
 
   const totalSent = (lvData.sentences || []).length;
   const doneSent = Object.keys(sentRecordUrls).length;
@@ -2170,10 +2289,11 @@ async function checkAutoCompletion() {
 }
 
 function renderCompleteBar() {
-  const story = stories[currentStoryIdx];
+  const story = getCurrentStory();
   if (!story) return;
-  const lvData = story.levels[currentLevel] || { sentences: [], quiz: [], speaking: [] };
-  const p = progressData[currentUser]?.[story.date] || { read: false, quiz: false, speak: false };
+  const lvData = (story.levels[currentLevel] || story.levels.lv3) || { sentences: [], quiz: [], speaking: [] };
+  const pKey = story.progressKey || story.date;
+  const p = progressData[currentUser]?.[pKey] || { read: false, quiz: false, speak: false };
 
   const totalSent = (lvData.sentences || []).length;
   const doneSent = Object.keys(sentRecordUrls).length;
@@ -2221,17 +2341,19 @@ function renderCompleteBar() {
 }
 
 async function markStepDone(step) {
-  const story = stories[currentStoryIdx];
+  const story = getCurrentStory();
   if (!story || !currentUser) return;
+  const pKey = story.progressKey || story.date;
+
   if (!progressData[currentUser]) progressData[currentUser] = {};
-  if (!progressData[currentUser][story.date]) {
-    progressData[currentUser][story.date] = { read: false, quiz: false, speak: false, completedDate: '' };
+  if (!progressData[currentUser][pKey]) {
+    progressData[currentUser][pKey] = { read: false, quiz: false, speak: false, completedDate: '' };
   }
-  if (progressData[currentUser][story.date][step]) return;
+  if (progressData[currentUser][pKey][step]) return;
 
-  progressData[currentUser][story.date][step] = true;
+  progressData[currentUser][pKey][step] = true;
 
-  const p = progressData[currentUser][story.date];
+  const p = progressData[currentUser][pKey];
   if (p.read && p.quiz && p.speak && !p.completedDate) {
     p.completedDate = getTodayKstStr();
   }
@@ -2247,7 +2369,7 @@ async function markStepDone(step) {
   if (gasUrl) {
     await fetch(gasUrl, {
       method: 'POST',
-      body: JSON.stringify({ user: currentUser, date: story.date, step })
+      body: JSON.stringify({ user: currentUser, date: pKey, step })
     });
   }
 }
@@ -2272,8 +2394,9 @@ function speakText(text, customRate) {
 
 function speakSingle(idx) {
   stopSpeech();
-  const story = stories[currentStoryIdx];
-  const s = story.levels[currentLevel].sentences[idx];
+  const story = getCurrentStory();
+  const lvData = story.levels[currentLevel] || story.levels.lv3;
+  const s = lvData.sentences[idx];
   const card = document.getElementById(`sent-card-${idx}`);
   card.classList.add('speaking');
 
@@ -2285,8 +2408,10 @@ function speakSingle(idx) {
 function playAllSentences() {
   stopSpeech();
   stepPlayCancel = false;
-  const story = stories[currentStoryIdx];
-  const list = story.levels[currentLevel].sentences;
+  const story = getCurrentStory();
+  if (!story) return;
+  const lvData = story.levels[currentLevel] || story.levels.lv3;
+  const list = lvData.sentences;
   let idx = 0;
 
   function next() {
@@ -2319,12 +2444,11 @@ function cycleSpeed() {
   document.getElementById('speedBtn').textContent = `속도 ${speechRate}x`;
 }
 
-/* ==================== 내 학습 현황표 & 내 포인트 대시보드 (타인 정보 숨김) ==================== */
+/* ==================== 내 학습 현황표 & 내 포인트 대시보드 ==================== */
 function renderProgressBoard() {
   const me = usersList.find(u => u.id === currentUser);
   if (!me) return;
 
-  // 일반 모드에서는 본인 정보만 표시, 관리자 검수 모드(?mode=review)일 때만 전체 표시
   const targetUsers = isReviewMode ? usersList : [me];
 
   const pointTitleEl = document.getElementById('myPointSectionTitle');
@@ -2367,27 +2491,29 @@ function renderProgressBoard() {
   }
 
   const table = document.getElementById('progressBoardTable');
-  if (!stories.length) {
+  if (!allStories.length) {
     table.innerHTML = '<tr><td>표시할 학습 데이터가 없습니다.</td></tr>';
     return;
   }
-  const publicStories = stories.filter(s => !s.isScheduled);
+  const visibleStories = allStories.filter(s => !s.isScheduled);
   let html = `
     <thead>
       <tr>
         <th>날짜</th>
-        <th>에피소드</th>
+        <th>아티클 / 에피소드</th>
         ${targetUsers.map(u => `<th>${isReviewMode ? u.name : '학습 상태'}</th>`).join('')}
       </tr>
     </thead>
     <tbody>
   `;
-  publicStories.forEach(st => {
+  visibleStories.forEach(st => {
+    const pKey = st.progressKey || st.date;
+    const privateBadge = st.owner && st.owner !== 'public' ? ' 🔒' : '';
     html += `<tr>
       <td><strong>${st.date}</strong></td>
-      <td style="text-align:left;">${st.title}</td>
+      <td style="text-align:left;">${st.title}${privateBadge}</td>
       ${targetUsers.map(u => {
-        const p = progressData[u.id]?.[st.date];
+        const p = progressData[u.id]?.[pKey];
         if (p && p.read && p.quiz && p.speak) {
           const isOnTime = !p.completedDate || p.completedDate === st.date;
           return isOnTime
@@ -2406,7 +2532,7 @@ function renderProgressBoard() {
   table.innerHTML = html;
 }
 
-/* ==================== 설정 & 관리자 검수(쿠폰 지급 포함) ==================== */
+/* ==================== 설정 & 관리자 검수 ==================== */
 function openSettings() {
   document.getElementById('gasUrlInput').value = getGasUrl();
   populateVoiceDropdown();
@@ -2470,10 +2596,11 @@ async function fulfillCoupon(redeemId) {
 function renderReviewList() {
   const tabsEl = document.getElementById('reviewDateTabs');
   tabsEl.innerHTML = '';
-  stories.forEach((st, idx) => {
+  allStories.forEach((st, idx) => {
     const btn = document.createElement('button');
     const badge = st.isScheduled ? '🔒예약' : '✅공개';
-    btn.textContent = `${st.date} (${badge})`;
+    const priv = st.owner && st.owner !== 'public' ? `[${st.owner}전용]` : '';
+    btn.textContent = `${st.date}${priv} (${badge})`;
     btn.className = 'btn';
     btn.onclick = () => renderStoryEditor(st);
     tabsEl.appendChild(btn);
@@ -2484,22 +2611,19 @@ function renderReviewList() {
 function renderStoryEditor(story) {
   const area = document.getElementById('reviewEditorArea');
   const levels = ['lv1', 'lv2', 'lv3'];
-  const levelNames = { lv1: 'Lv.1 기초', lv2: 'Lv.2 중급', lv3: 'Lv.3 원서형' };
+  const levelNames = { lv1: 'Lv.1 기초', lv2: 'Lv.2 중급', lv3: 'Lv.3 원서형 / 묵상' };
 
   let html = `
     <div style="margin-bottom:12px;">
-      <label style="font-weight:700;font-size:12.5px;display:block;margin-bottom:4px;">에피소드 제목 (${story.date})</label>
+      <label style="font-weight:700;font-size:12.5px;display:block;margin-bottom:4px;">제목 (${story.date} · 대상: ${story.owner || 'public'})</label>
       <input id="revTitle" class="input-field" value="${story.title.replace(/"/g, '&quot;')}">
     </div>
-    <p style="font-size:12px;color:var(--muted);margin:0 0 10px;">💡 가운데 노란색 칸에서 <strong>슬래시( / )</strong> 위치를 고치면 아이들이 [✂️ 의미끊기] 버튼을 누를 때 그 단위대로 끊어 읽습니다.</p>
+    <p style="font-size:12px;color:var(--muted);margin:0 0 10px;">💡 가운데 노란색 칸에서 <strong>슬래시( / )</strong> 위치를 고치면 끊어읽기 구간이 즉시 반영됩니다.</p>
   `;
 
   levels.forEach(lv => {
     const lvData = story.levels[lv];
-    if (!lvData) {
-      html += `<div style="padding:10px;background:#fef2f2;border-radius:8px;margin-bottom:10px;color:#b91c1c;font-size:12.5px;">⚠️ ${levelNames[lv]} 데이터가 아직 생성 중입니다.</div>`;
-      return;
-    }
+    if (!lvData) return;
     html += `<div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;background:#f8fafc;">
       <div style="font-weight:700;margin-bottom:6px;font-size:13px;">${levelNames[lv]} (${lvData.sentences.length}문장)</div>`;
     lvData.sentences.forEach((s, sIdx) => {
@@ -2518,8 +2642,8 @@ function renderStoryEditor(story) {
 
   html += `
     <div style="display:flex;justify-content:space-between;margin-top:14px;">
-      <button id="revDeleteBtn" class="btn" style="background:#ef4444;color:#fff;border-color:#ef4444;">🗑️ 이 날짜 삭제</button>
-      <button id="revSaveBtn" class="btn btn-primary">💾 수정 내용(청크 포함) 시트에 저장</button>
+      <button id="revDeleteBtn" class="btn" style="background:#ef4444;color:#fff;border-color:#ef4444;">🗑️ 이 글 삭제</button>
+      <button id="revSaveBtn" class="btn btn-primary">💾 수정 내용 시트에 저장</button>
     </div>
   `;
   area.innerHTML = html;
@@ -2540,17 +2664,27 @@ function renderStoryEditor(story) {
     btn.textContent = '저장 중...';
     await fetch(gasUrl, {
       method: 'POST',
-      body: JSON.stringify({ action: 'update_story', date: updated.date, title: updated.title, levels: updated.levels })
+      body: JSON.stringify({
+        action: 'update_story',
+        date: updated.date,
+        owner: updated.owner || 'public',
+        title: updated.title,
+        levels: updated.levels
+      })
     });
     btn.textContent = '✅ 저장 완료!';
     setTimeout(() => location.reload(), 700);
   };
 
   document.getElementById('revDeleteBtn').onclick = async () => {
-    if (!confirm(`${story.date} 에피소드를 삭제할까요?`)) return;
+    if (!confirm(`${story.date} 글을 삭제할까요?`)) return;
     await fetch(gasUrl, {
       method: 'POST',
-      body: JSON.stringify({ action: 'delete_story', date: story.date })
+      body: JSON.stringify({
+        action: 'delete_story',
+        date: story.date,
+        owner: story.owner || 'public'
+      })
     });
     alert('삭제되었습니다.');
     location.reload();
