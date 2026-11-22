@@ -77,7 +77,7 @@
       flex-wrap: wrap;
       gap: 8px;
     }
-    .profile-info { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .profile-info { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
     .profile-name { font-size: 15px; font-weight: 800; color: #0f172a; }
     .point-pill {
       font-size: 11.5px;
@@ -106,7 +106,7 @@
       font-weight: 700;
     }
 
-    /* 순수 레벨 선택 탭 (인물 이름 제거) */
+    /* 순수 레벨 선택 탭 */
     .level-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
     .level-tab {
       background: var(--card);
@@ -160,6 +160,68 @@
       margin-bottom: 12px;
     }
 
+    /* 보상 상점 카드 스타일 */
+    .wallet-hero {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #fff;
+      border-radius: 13px;
+      padding: 16px 18px;
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reward-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(235px, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .reward-card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .reward-title { font-size: 15px; font-weight: 800; color: #0f172a; }
+    .reward-desc { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .reward-cost { font-size: 14px; font-weight: 900; color: #d97706; }
+    .coupon-list { display: flex; flex-direction: column; gap: 8px; }
+    .coupon-item {
+      background: #f8fafc;
+      border: 1px dashed #94a3b8;
+      border-radius: 10px;
+      padding: 10px 13px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .coupon-badge-unused {
+      background: #fef3c7;
+      color: #b45309;
+      border: 1px solid #fcd34d;
+      font-size: 11.5px;
+      font-weight: 800;
+      padding: 3px 9px;
+      border-radius: 999px;
+    }
+    .coupon-badge-used {
+      background: #e2e8f0;
+      color: #475569;
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 999px;
+    }
+
     /* 포인트 대시보드 카드 */
     .point-dashboard-grid {
       display: grid;
@@ -180,7 +242,7 @@
       margin-bottom: 6px;
     }
     .ps-name { font-size: 15px; font-weight: 800; color: #0f172a; }
-    .ps-total { font-size: 18px; font-weight: 900; color: #d97706; }
+    .ps-total { font-size: 17px; font-weight: 900; color: #d97706; }
     .ps-detail { font-size: 12px; color: #475569; line-height: 1.55; }
     .ps-next-goal {
       margin-top: 7px;
@@ -273,9 +335,10 @@
       align-items: center;
       gap: 4px;
     }
-    .btn:hover { background: #f1f5f9; }
+    .btn:hover:not(:disabled) { background: #f1f5f9; }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; }
     .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
-    .btn-primary:hover { background: #2563eb; }
+    .btn-primary:hover:not(:disabled) { background: #2563eb; }
     .btn-rec { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
     .btn-rec.recording { background: #dc2626; color: #fff; border-color: #dc2626; animation: pulse 1s infinite; }
     .btn-play-rec { background: #ecfdf5; color: #059669; border-color: #a7f3d0; }
@@ -558,7 +621,7 @@
     .speak-item.rec-done { border-left: 4px solid var(--success); }
     .speak-btns { display: flex; gap: 5px; flex-wrap: wrap; }
 
-    /* 자동 완료 상태 표시 배지 (수동 클릭 잠금) */
+    /* 자동 완료 상태 표시 배지 */
     .complete-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
     .step-badge {
       padding: 11px 6px;
@@ -610,9 +673,9 @@
 <body>
 
 <div id="reviewTopBar" class="hidden" style="background:#1e293b;color:#f8fafc;padding:10px 14px;font-size:13px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:9999;">
-  <div><strong>🛠️ 관리자 콘텐츠 검수 모드</strong> <span style="font-size:11.5px;color:#fcd34d;margin-left:6px;">[ / ] 끊어읽기 구간 표시 중</span></div>
+  <div><strong>🛠️ 관리자 콘텐츠 & 쿠폰 검수 모드</strong> <span style="font-size:11.5px;color:#fcd34d;margin-left:6px;">[ / ] 끊어읽기 구간 표시 중</span></div>
   <div style="display:flex;gap:6px;">
-    <button id="openReviewModalBtn" style="background:#3b82f6;color:#fff;border:none;padding:5px 11px;border-radius:6px;cursor:pointer;font-weight:700;font-size:12px;">📋 전체 회차 검수/수정</button>
+    <button id="openReviewModalBtn" style="background:#3b82f6;color:#fff;border:none;padding:5px 11px;border-radius:6px;cursor:pointer;font-weight:700;font-size:12px;">📋 회차 편집 & 쿠폰 관리</button>
     <a id="exitReviewLink" href="#" style="background:#475569;color:#fff;text-decoration:none;padding:5px 10px;border-radius:6px;font-size:12px;">일반 화면</a>
   </div>
 </div>
@@ -626,6 +689,7 @@
     <div class="header-actions">
       <span id="connStatus" class="status-badge">연결 확인 중...</span>
       <button id="tabStudyBtn" class="icon-btn active-nav hidden" onclick="switchMainView('study')">📖 오늘의 학습</button>
+      <button id="tabShopBtn" class="icon-btn hidden" onclick="switchMainView('shop')">🎁 보상 상점</button>
       <button id="tabBoardBtn" class="icon-btn hidden" onclick="switchMainView('board')">📊 학습 & 포인트</button>
       <button class="icon-btn" onclick="openSettings()">⚙️</button>
     </div>
@@ -647,9 +711,9 @@
   <div id="appMainArea" class="hidden">
     <div class="profile-banner" id="profileBanner"></div>
 
-    <div class="level-tabs" id="levelTabs"></div>
-
+    <!-- 1. 오늘의 학습 뷰 -->
     <div id="studyView">
+      <div class="level-tabs" id="levelTabs"></div>
       <div class="episode-nav-wrap" id="episodeBar"></div>
 
       <div class="card" id="storyCard">
@@ -712,9 +776,25 @@
       </div>
     </div>
 
+    <!-- 2. 보상 상점 뷰 -->
+    <div id="shopView" class="hidden">
+      <div class="wallet-hero" id="walletHero"></div>
+
+      <div class="card">
+        <h3 class="sec-title" style="margin-bottom:10px;">🎁 포인트 보상 상점 (원하는 보상 쿠폰으로 교환하세요!)</h3>
+        <div class="reward-grid" id="rewardGrid"></div>
+      </div>
+
+      <div class="card">
+        <h3 class="sec-title" style="margin-bottom:10px;">🎟️ 내가 교환한 쿠폰함</h3>
+        <div class="coupon-list" id="myCouponList"></div>
+      </div>
+    </div>
+
+    <!-- 3. 학습 현황표 & 포인트 대시보드 뷰 -->
     <div id="boardView" class="hidden">
       <div class="card">
-        <h3 class="sec-title" style="margin-bottom:10px;">🪙 우리 가족 누적 포인트 & 연속 학습 현황</h3>
+        <h3 class="sec-title" style="margin-bottom:10px;">🪙 우리 가족 포인트 & 연속 학습 현황</h3>
         <div class="point-rule-box">
           <strong>📌 우리 가족 포인트 적립 규칙</strong><br/>
           • <strong>기본 완료 점수:</strong> 당일 학습이든 밀린 학습 복습이든 3단계 자동 완료 시 무조건 <strong>+10 P</strong> 지급<br/>
@@ -756,9 +836,16 @@
 <div id="reviewModal" class="modal-backdrop">
   <div class="modal-box wide">
     <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:14px;">
-      <h3 style="margin:0;">📋 에피소드 검수 및 직접 편집 (구글 시트 즉시 반영)</h3>
+      <h3 style="margin:0;">📋 관리자 검수 · 회차 편집 & 쿠폰 지급 관리</h3>
       <button onclick="document.getElementById('reviewModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">✕</button>
     </div>
+
+    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px;margin-bottom:16px;">
+      <div style="font-weight:800;font-size:13.5px;color:#92400e;margin-bottom:8px;">🎟️ 아이들 쿠폰 발급 및 사용 확인</div>
+      <div id="adminCouponArea" style="font-size:12.5px;">불러오는 중...</div>
+    </div>
+
+    <div style="font-weight:800;font-size:13.5px;margin-bottom:8px;">📖 날짜별 스토리 · 청크 직접 편집</div>
     <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;" id="reviewDateTabs"></div>
     <div id="reviewEditorArea">불러오는 중...</div>
   </div>
@@ -807,6 +894,9 @@ let currentLevel = 'lv1';
 let stories = [];
 let currentStoryIdx = 0;
 let progressData = JSON.parse(localStorage.getItem('backup_progress') || '{}');
+let rewardsList = [];
+let redemptionsList = [];
+
 let showAllKo = false;
 let showAllVocabMean = false;
 let showAllPhraseKo = false;
@@ -814,13 +904,12 @@ let speechRate = 1.0;
 let stepPlayCancel = false;
 const isReviewMode = new URLSearchParams(window.location.search).get('mode') === 'review';
 
-// 녹음 및 자동 완료 추적 상태 (회차·레벨 전환 시 초기화)
 let activeRecorder = null;
-let activeRecTarget = null; // { type: 'sent' | 'speak', idx: number }
+let activeRecTarget = null;
 let recordStartTime = 0;
-let sentRecordUrls = {};   // { [idx]: blobUrl }
-let speakRecordUrls = {};  // { [idx]: blobUrl }
-let quizSolvedMap = {};    // { [qIdx]: true }
+let sentRecordUrls = {};
+let speakRecordUrls = {};
+let quizSolvedMap = {};
 
 function getGasUrl() {
   return localStorage.getItem('gas_web_app_url') || DEFAULT_GAS_URL;
@@ -841,6 +930,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('exitReviewLink').href = window.location.pathname;
     document.getElementById('openReviewModalBtn').onclick = () => {
       document.getElementById('reviewModal').style.display = 'block';
+      renderAdminCoupons();
       renderReviewList();
     };
   }
@@ -865,6 +955,8 @@ async function loadData() {
         usersList = data.users;
       }
       stories = data.stories || [];
+      rewardsList = data.rewards || [];
+      redemptionsList = data.redemptions || [];
       if (data.progress) {
         progressData = data.progress;
         localStorage.setItem('backup_progress', JSON.stringify(progressData));
@@ -942,6 +1034,7 @@ function updateAuthView() {
   document.getElementById('loginView').classList.toggle('hidden', isLoggedIn);
   document.getElementById('appMainArea').classList.toggle('hidden', !isLoggedIn);
   document.getElementById('tabStudyBtn').classList.toggle('hidden', !isLoggedIn);
+  document.getElementById('tabShopBtn').classList.toggle('hidden', !isLoggedIn);
   document.getElementById('tabBoardBtn').classList.toggle('hidden', !isLoggedIn);
 
   if (isLoggedIn) {
@@ -952,6 +1045,7 @@ function updateAuthView() {
     renderLevelTabs();
     renderEpisodeBar();
     renderStory();
+    renderRewardShop();
     renderProgressBoard();
   }
 }
@@ -966,9 +1060,14 @@ function resetSessionTrackers() {
 
 function switchMainView(view) {
   document.getElementById('studyView').classList.toggle('hidden', view !== 'study');
+  document.getElementById('shopView').classList.toggle('hidden', view !== 'shop');
   document.getElementById('boardView').classList.toggle('hidden', view !== 'board');
+
   document.getElementById('tabStudyBtn').classList.toggle('active-nav', view === 'study');
+  document.getElementById('tabShopBtn').classList.toggle('active-nav', view === 'shop');
   document.getElementById('tabBoardBtn').classList.toggle('active-nav', view === 'board');
+
+  if (view === 'shop') renderRewardShop();
   if (view === 'board') renderProgressBoard();
 }
 
@@ -977,7 +1076,7 @@ function isDateCompleted(userId, dateStr) {
   return !!(p && p.read && p.quiz && p.speak);
 }
 
-/* ==================== 포인트 & 연속 학습 계산 ==================== */
+/* ==================== 포인트 · 연속 학습 · 잔액 계산 ==================== */
 function getStreakMilestoneBonus(streakCount) {
   if (streakCount <= 0 || streakCount % 10 !== 0) return 0;
   if (streakCount === 10) return 30;
@@ -1033,6 +1132,12 @@ function calculateUserStats(userId) {
     }
   }
 
+  const earnedPoints = basePoints + cumulativeBonusPoints + streakBonusPoints;
+  const spentPoints = redemptionsList
+    .filter(r => r.user === userId)
+    .reduce((sum, r) => sum + (Number(r.cost) || 0), 0);
+  const availablePoints = Math.max(0, earnedPoints - spentPoints);
+
   const nextStreakMilestone = (Math.floor(activeStreak / 10) + 1) * 10;
   const daysToNextStreakBonus = nextStreakMilestone - activeStreak;
   const nextStreakBonusAmount = getStreakMilestoneBonus(nextStreakMilestone);
@@ -1047,7 +1152,9 @@ function calculateUserStats(userId) {
     basePoints,
     cumulativeBonusPoints,
     streakBonusPoints,
-    totalPoints: basePoints + cumulativeBonusPoints + streakBonusPoints,
+    earnedPoints,
+    spentPoints,
+    availablePoints,
     activeStreak,
     nextStreakMilestone,
     daysToNextStreakBonus,
@@ -1069,7 +1176,7 @@ function renderProfileBanner() {
   banner.innerHTML = `
     <div class="profile-info">
       <span class="profile-name">👤 ${userObj.name} 님</span>
-      <span class="point-pill">🪙 ${stats.totalPoints} P</span>
+      <span class="point-pill">🪙 사용가능 ${stats.availablePoints} P (누적 ${stats.earnedPoints} P)</span>
       <span class="streak-pill">🔥 ${stats.activeStreak}일 연속</span>
       ${done ? '<span class="done-pill">✅ 이 회차 완료</span>' : ''}
     </div>
@@ -1077,6 +1184,118 @@ function renderProfileBanner() {
   `;
 }
 
+/* ==================== 보상 상점 & 쿠폰함 로직 ==================== */
+function renderRewardShop() {
+  const userObj = usersList.find(u => u.id === currentUser);
+  if (!userObj) return;
+  const stats = calculateUserStats(userObj.id);
+
+  const hero = document.getElementById('walletHero');
+  if (hero) {
+    hero.innerHTML = `
+      <div>
+        <div style="font-size:12.5px;opacity:0.9;font-weight:700;">${userObj.name} 님의 보상 지갑</div>
+        <div style="font-size:24px;font-weight:900;margin-top:2px;">🪙 사용 가능: ${stats.availablePoints} P</div>
+      </div>
+      <div style="text-align:right;font-size:12.5px;line-height:1.5;">
+        <div>총 획득 포인트: <strong>${stats.earnedPoints} P</strong></div>
+        <div>쿠폰 사용 포인트: <strong>-${stats.spentPoints} P</strong></div>
+      </div>
+    `;
+  }
+
+  const rGrid = document.getElementById('rewardGrid');
+  if (rGrid) {
+    if (!rewardsList.length) {
+      rGrid.innerHTML = '<div style="color:var(--muted);font-size:13px;">등록된 보상 메뉴가 없습니다. 구글 시트 Rewards 탭을 확인해 주세요.</div>';
+    } else {
+      rGrid.innerHTML = rewardsList.map(rw => {
+        const canAfford = stats.availablePoints >= rw.cost;
+        const diff = rw.cost - stats.availablePoints;
+        return `
+          <div class="reward-card">
+            <div>
+              <div class="reward-title">${rw.title}</div>
+              <div class="reward-desc">${rw.desc}</div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;padding-top:8px;border-top:1px dashed var(--border);">
+              <span class="reward-cost">🪙 ${rw.cost} P</span>
+              <button class="btn ${canAfford ? 'btn-primary' : ''}" ${canAfford ? '' : 'disabled'} onclick="redeemReward('${rw.id}')">
+                ${canAfford ? '🎟️ 교환하기' : `🔒 ${diff} P 부족`}
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
+  const cList = document.getElementById('myCouponList');
+  if (cList) {
+    const myCoupons = redemptionsList.filter(r => r.user === currentUser);
+    if (!myCoupons.length) {
+      cList.innerHTML = '<div style="color:var(--muted);font-size:13px;">아직 교환한 쿠폰이 없습니다. 포인트를 모아 첫 쿠폰을 받아보세요!</div>';
+    } else {
+      cList.innerHTML = myCoupons.map(cp => {
+        const isUsed = cp.status === '지급완료';
+        return `
+          <div class="coupon-item">
+            <div>
+              <div style="font-weight:800;font-size:14px;">${cp.rewardTitle}</div>
+              <div style="font-size:11.5px;color:var(--muted);">교환일: ${cp.date} · 사용 포인트: ${cp.cost} P</div>
+            </div>
+            <span class="${isUsed ? 'coupon-badge-used' : 'coupon-badge-unused'}">
+              ${isUsed ? '✅ 지급 완료' : '🎟️ 사용 가능 (엄마에게 보여주세요!)'}
+            </span>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+}
+
+async function redeemReward(rewardId) {
+  const rw = rewardsList.find(r => r.id === rewardId);
+  if (!rw) return;
+  const stats = calculateUserStats(currentUser);
+  if (stats.availablePoints < rw.cost) {
+    alert('포인트가 부족합니다!');
+    return;
+  }
+
+  if (!confirm(`🪙 ${rw.cost} P를 사용해서\n[${rw.title}] 쿠폰으로 교환할까요?`)) return;
+
+  const todayStr = getTodayKstStr();
+  const tempId = String(Date.now());
+  redemptionsList.unshift({
+    redeemId: tempId,
+    date: todayStr,
+    user: currentUser,
+    rewardTitle: rw.title,
+    cost: rw.cost,
+    status: '미사용'
+  });
+
+  renderProfileBanner();
+  renderRewardShop();
+  renderProgressBoard();
+
+  const gasUrl = getGasUrl();
+  if (gasUrl) {
+    await fetch(gasUrl, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'redeem_reward',
+        user: currentUser,
+        rewardTitle: rw.title,
+        cost: rw.cost
+      })
+    });
+  }
+  alert('🎉 쿠폰 교환이 완료되었습니다! 아래 [내가 교환한 쿠폰함]을 엄마에게 보여주세요.');
+}
+
+/* ==================== 레벨 & 에피소드 탐색 ==================== */
 function renderLevelTabs() {
   const wrap = document.getElementById('levelTabs');
   wrap.innerHTML = LEVELS.map(lv => `
@@ -1601,7 +1820,7 @@ async function playBySemanticChunks(sentIdx) {
   }
 }
 
-/* ==================== 통합 녹음 로직 (본문 문장 + 스피킹 문장) ==================== */
+/* ==================== 통합 녹음 로직 (본문 + 스피킹) ==================== */
 function renderSpeakingList(speakingArr, isChildMode) {
   const spList = document.getElementById('speakingList');
   spList.innerHTML = speakingArr.map((sp, idx) => {
@@ -1782,7 +2001,7 @@ function renderCompleteBar() {
     const modeTag = isOnTime
       ? `🔥 당일 연속 ${stats.activeStreak}일째 달성! (+10 P)`
       : `📚 지난 회차 복습 완료! (+10 P · 누적 ${stats.totalCompletedCount}편)`;
-    banner.innerHTML = `🎉 축하합니다! 오늘의 학습 3단계를 모두 자동 완료했어요!<br/><span style="font-size:12.5px;font-weight:700;">${modeTag} · 현재 총 누적 포인트: ${stats.totalPoints} P</span>`;
+    banner.innerHTML = `🎉 축하합니다! 오늘의 학습 3단계를 모두 자동 완료했어요!<br/><span style="font-size:12.5px;font-weight:700;">${modeTag} · 현재 사용 가능 포인트: ${stats.availablePoints} P</span>`;
     banner.classList.remove('hidden');
   } else {
     banner.classList.add('hidden');
@@ -1809,6 +2028,7 @@ async function markStepDone(step) {
   renderCompleteBar();
   renderProfileBanner();
   renderEpisodeBar();
+  renderRewardShop();
   renderProgressBoard();
 
   const gasUrl = getGasUrl();
@@ -1897,12 +2117,12 @@ function renderProgressBoard() {
         <div class="point-summary-card">
           <div class="ps-header">
             <span class="ps-name">${u.name}</span>
-            <span class="ps-total">🪙 ${s.totalPoints} P</span>
+            <span class="ps-total">🪙 잔액 ${s.availablePoints} P</span>
           </div>
           <div class="ps-detail">
-            • 기본 완료: <strong>${s.basePoints} P</strong> (총 ${s.totalCompletedCount}편: 당일 ${s.onTimeCount} + 복습 ${s.reviewCount})<br/>
-            • 누적 달성 보너스(10편당): <strong>+${s.cumulativeBonusPoints} P</strong><br/>
-            • 🔥 당일 연속 보너스: <strong>+${s.streakBonusPoints} P</strong> (현재 ${s.activeStreak}일 연속)
+            • 총 획득: <strong>${s.earnedPoints} P</strong> (기본 ${s.basePoints} + 누적보너스 ${s.cumulativeBonusPoints} + 연속보너스 ${s.streakBonusPoints})<br/>
+            • 쿠폰 사용 차감: <strong>-${s.spentPoints} P</strong><br/>
+            • 완료 편수: 총 <strong>${s.totalCompletedCount}편</strong> (당일 ${s.onTimeCount} · 복습 ${s.reviewCount})
           </div>
           <div class="ps-next-goal">
             🎯 다음 연속 보너스(${s.nextStreakMilestone}일 연속, +${s.nextStreakBonusAmount}P)까지 <strong>${s.daysToNextStreakBonus}일</strong> 남음!<br/>
@@ -1953,7 +2173,7 @@ function renderProgressBoard() {
   table.innerHTML = html;
 }
 
-/* ==================== 설정 & 관리자 검수 모달 ==================== */
+/* ==================== 설정 & 관리자 검수(쿠폰 지급 포함) ==================== */
 function openSettings() {
   document.getElementById('gasUrlInput').value = getGasUrl();
   populateVoiceDropdown();
@@ -1969,6 +2189,49 @@ function saveSettings() {
   if (voiceVal) localStorage.setItem('selected_voice_name', voiceVal);
   closeSettings();
   loadData();
+}
+
+function renderAdminCoupons() {
+  const area = document.getElementById('adminCouponArea');
+  if (!area) return;
+  if (!redemptionsList.length) {
+    area.innerHTML = '<span style="color:var(--muted);">아직 교환 신청된 쿠폰 내역이 없습니다.</span>';
+    return;
+  }
+  area.innerHTML = redemptionsList.map(cp => {
+    const uObj = usersList.find(u => u.id === cp.user);
+    const uName = uObj ? uObj.name : cp.user;
+    const isUsed = cp.status === '지급완료';
+    return `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed #fde68a;gap:8px;flex-wrap:wrap;">
+        <div>
+          <strong>[${uName}]</strong> ${cp.rewardTitle} <span style="color:var(--muted);">(${cp.date} · ${cp.cost}P)</span>
+        </div>
+        <div>
+          ${isUsed
+            ? '<span style="color:#059669;font-weight:700;">✅ 지급완료</span>'
+            : `<button class="btn btn-primary" style="padding:4px 9px;font-size:11.5px;" onclick="fulfillCoupon('${cp.redeemId}')">✅ 보상 지급 완료 처리</button>`
+          }
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function fulfillCoupon(redeemId) {
+  const target = redemptionsList.find(r => r.redeemId === redeemId);
+  if (!target) return;
+  target.status = '지급완료';
+  renderAdminCoupons();
+  renderRewardShop();
+
+  const gasUrl = getGasUrl();
+  if (gasUrl) {
+    await fetch(gasUrl, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'fulfill_redemption', redeemId })
+    });
+  }
 }
 
 function renderReviewList() {
