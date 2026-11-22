@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>서아 · 서율 · 엄마 데일리 영어 리딩</title>
+  <title>데일리 영어 리딩 클럽</title>
   <style>
     :root {
       --bg: #f8fafc;
@@ -37,7 +37,7 @@
       align-items: center;
       flex-wrap: wrap;
       gap: 8px;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
     }
     .brand h1 { margin: 0; font-size: 18px; font-weight: 800; color: #0f172a; }
     .brand p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
@@ -64,9 +64,51 @@
     .icon-btn:hover { background: #f1f5f9; }
     .icon-btn.active-nav { background: #0f172a; color: #fff; border-color: #0f172a; }
 
-    /* 사용자 선택 탭 + 포인트·연속학습 배지 */
-    .user-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
-    .user-tab {
+    /* 로그인 프로필 상단 바 */
+    .profile-banner {
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 10px 14px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .profile-info { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .profile-name { font-size: 15px; font-weight: 800; color: #0f172a; }
+    .point-pill {
+      font-size: 11.5px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #fef3c7;
+      color: #b45309;
+      border: 1px solid #fde68a;
+      font-weight: 800;
+    }
+    .streak-pill {
+      font-size: 11.5px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #ffedd5;
+      color: #c2410c;
+      border: 1px solid #fed7aa;
+      font-weight: 800;
+    }
+    .done-pill {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--success);
+      color: #fff;
+      font-weight: 700;
+    }
+
+    /* 순수 레벨 선택 탭 (인물 이름 제거) */
+    .level-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+    .level-tab {
       background: var(--card);
       border: 2px solid var(--border);
       border-radius: 12px;
@@ -75,46 +117,47 @@
       cursor: pointer;
       transition: all 0.15s;
     }
-    .user-tab.active { border-color: var(--primary); background: var(--primary-soft); }
-    .user-tab .name { font-size: 14.5px; font-weight: 800; display: block; }
-    .user-tab .desc { font-size: 11px; color: var(--muted); display: block; }
-    .user-stats-row {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 4px;
-      flex-wrap: wrap;
-      margin-top: 5px;
+    .level-tab.active { border-color: var(--primary); background: var(--primary-soft); }
+    .level-tab .lv-title { font-size: 14.5px; font-weight: 800; display: block; color: #0f172a; }
+    .level-tab .lv-desc { font-size: 11px; color: var(--muted); display: block; margin-top: 2px; }
+
+    /* 로그인 화면 카드 */
+    .login-card {
+      max-width: 440px;
+      margin: 24px auto;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px 20px;
+      text-align: center;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.04);
     }
-    .point-pill {
-      display: inline-block;
-      font-size: 10.5px;
-      padding: 1px 7px;
-      border-radius: 999px;
-      background: #fef3c7;
-      color: #b45309;
-      border: 1px solid #fde68a;
+    .login-user-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 16px 0; }
+    .login-user-btn {
+      padding: 14px 8px;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      background: #f8fafc;
+      cursor: pointer;
       font-weight: 800;
+      font-size: 15px;
+      transition: all 0.15s;
     }
-    .streak-pill {
-      display: inline-block;
-      font-size: 10.5px;
-      padding: 1px 7px;
-      border-radius: 999px;
-      background: #ffedd5;
-      color: #c2410c;
-      border: 1px solid #fed7aa;
+    .login-user-btn.selected {
+      border-color: var(--primary);
+      background: var(--primary-soft);
+      color: var(--primary);
+    }
+    .pin-input {
+      width: 180px;
+      text-align: center;
+      font-size: 22px;
+      letter-spacing: 8px;
       font-weight: 800;
-    }
-    .user-tab .done-pill {
-      display: inline-block;
-      margin-top: 4px;
-      font-size: 10.5px;
-      padding: 1px 7px;
-      border-radius: 999px;
-      background: var(--success);
-      color: #fff;
-      font-weight: 700;
+      padding: 10px;
+      border: 2px solid #cbd5e1;
+      border-radius: 10px;
+      margin-bottom: 12px;
     }
 
     /* 포인트 대시보드 카드 */
@@ -275,6 +318,7 @@
       transition: all 0.15s;
     }
     .sentence-card.speaking { background: #fef9c3; border-color: #eab308; }
+    .sentence-card.rec-done { border-left: 4px solid var(--success); }
     .sentence-row { display: flex; align-items: center; gap: 11px; }
     .scene-visual {
       width: 48px;
@@ -362,6 +406,22 @@
       background: #fffbeb;
       border-color: #fcd34d;
       color: #b45309;
+    }
+    .mini-btn.rec-btn {
+      background: #fef2f2;
+      border-color: #fecaca;
+      color: #dc2626;
+    }
+    .mini-btn.rec-btn.recording {
+      background: #dc2626;
+      color: #fff;
+      border-color: #dc2626;
+      animation: pulse 1s infinite;
+    }
+    .mini-btn.rec-done-btn {
+      background: #ecfdf5;
+      border-color: #86efac;
+      color: #059669;
     }
     .sentence-ko {
       margin-top: 7px;
@@ -495,20 +555,27 @@
       gap: 8px;
       font-size: 14px;
     }
+    .speak-item.rec-done { border-left: 4px solid var(--success); }
     .speak-btns { display: flex; gap: 5px; flex-wrap: wrap; }
 
+    /* 자동 완료 상태 표시 배지 (수동 클릭 잠금) */
     .complete-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
-    .step-btn {
+    .step-badge {
       padding: 11px 6px;
       border-radius: 10px;
       border: 2px solid var(--border);
-      background: #fff;
+      background: #f8fafc;
       font-weight: 700;
-      font-size: 12.5px;
-      cursor: pointer;
+      font-size: 12px;
       text-align: center;
+      color: #475569;
+      line-height: 1.4;
     }
-    .step-btn.done { background: var(--success-soft); border-color: var(--success); color: #065f46; }
+    .step-badge.done {
+      background: var(--success-soft);
+      border-color: var(--success);
+      color: #065f46;
+    }
     .celebration-banner {
       margin-top: 12px;
       padding: 12px 14px;
@@ -558,88 +625,108 @@
     </div>
     <div class="header-actions">
       <span id="connStatus" class="status-badge">연결 확인 중...</span>
-      <button id="tabStudyBtn" class="icon-btn active-nav" onclick="switchMainView('study')">📖 오늘의 학습</button>
-      <button id="tabBoardBtn" class="icon-btn" onclick="switchMainView('board')">📊 학습 & 포인트</button>
+      <button id="tabStudyBtn" class="icon-btn active-nav hidden" onclick="switchMainView('study')">📖 오늘의 학습</button>
+      <button id="tabBoardBtn" class="icon-btn hidden" onclick="switchMainView('board')">📊 학습 & 포인트</button>
       <button class="icon-btn" onclick="openSettings()">⚙️</button>
     </div>
   </header>
 
-  <div class="user-tabs" id="userTabs"></div>
-
-  <div id="studyView">
-    <div class="episode-nav-wrap" id="episodeBar"></div>
-
-    <div class="card" id="storyCard">
-      <div class="story-header">
-        <div>
-          <h2 class="story-title" id="storyTitle">스토리를 불러오는 중...</h2>
-          <div class="story-meta" id="storyMeta"></div>
-        </div>
-        <div class="controls">
-          <button class="btn btn-primary" onclick="playAllSentences()">🔊 전체 듣기</button>
-          <button class="btn" onclick="stopSpeech()">⏹ 정지</button>
-          <button class="btn" onclick="cycleSpeed()" id="speedBtn">속도 1.0x</button>
-          <button class="btn" onclick="toggleAllKo()" id="allKoBtn">🇰🇷 전체 해석 보기</button>
-        </div>
-      </div>
-
-      <div id="chunkStatusBar" class="chunk-status-bar hidden">
-        <span id="chunkStatusText">읽기 연습 중...</span>
-        <button class="mini-btn" onclick="stopSpeech()">중지</button>
-      </div>
-
-      <div class="legend-bar" id="legendBar"></div>
-
-      <div class="sentence-list" id="sentenceList"></div>
+  <!-- 로그인 전 화면 -->
+  <div id="loginView" class="login-card">
+    <h2 style="margin:0 0 6px;font-size:19px;">👋 누구의 학습장인가요?</h2>
+    <p style="margin:0;font-size:12.5px;color:var(--muted);">이름을 선택하고 4자리 비밀번호(PIN)를 입력하세요.</p>
+    <div class="login-user-grid" id="loginUserGrid"></div>
+    <div>
+      <input id="pinInput" type="password" inputmode="numeric" maxlength="4" class="pin-input" placeholder="••••" onkeydown="if(event.key==='Enter') submitLogin()" />
     </div>
-
-    <div class="card">
-      <div class="sec-header-row">
-        <h3 class="sec-title">💡 오늘의 핵심 어휘</h3>
-        <button class="btn" onclick="toggleAllVocabMean()" id="allVocabBtn">🇰🇷 전체 뜻 보기</button>
-      </div>
-      <div class="vocab-grid" id="vocabGrid"></div>
-    </div>
-
-    <div class="card">
-      <div class="sec-header-row">
-        <h3 class="sec-title">✨ 꼭 기억할 핵심 표현</h3>
-        <button class="btn" onclick="toggleAllPhraseKo()" id="allPhraseBtn">🇰🇷 전체 해석 보기</button>
-      </div>
-      <div class="phrase-list" id="phraseList"></div>
-    </div>
-
-    <div class="card">
-      <h3 class="sec-title" style="margin-bottom:10px;">🧩 이해도 확인 퀴즈</h3>
-      <div id="quizList"></div>
-    </div>
-
-    <div class="card">
-      <h3 class="sec-title" style="margin-bottom:10px;">🗣️ 나도 주인공처럼 말해보기 (따라 읽기 & 녹음)</h3>
-      <div id="speakingList"></div>
-    </div>
-
-    <div class="card">
-      <h3 class="sec-title" style="margin-bottom:10px;">🏆 오늘의 학습 완료 체크</h3>
-      <div class="complete-bar" id="completeBar"></div>
-      <div id="celebrationBanner" class="celebration-banner hidden"></div>
-    </div>
+    <button class="btn btn-primary" style="padding:10px 24px;font-size:14px;" onclick="submitLogin()">🔓 로그인하기</button>
+    <p id="loginErrorMsg" style="color:var(--danger);font-size:12.5px;font-weight:700;margin-top:10px;"></p>
   </div>
 
-  <div id="boardView" class="hidden">
-    <div class="card">
-      <h3 class="sec-title" style="margin-bottom:10px;">🪙 우리 가족 누적 포인트 & 연속 학습 현황</h3>
-      <div class="point-rule-box">
-        <strong>📌 우리 가족 포인트 적립 규칙</strong><br/>
-        • <strong>기본 완료 점수:</strong> 당일 학습이든 밀린 학습 복습이든 3단계 완료 시 무조건 <strong>+10 P</strong> 지급<br/>
-        • <strong>누적 완료 보너스 (비연속):</strong> 총 완료 편수 10편 단위 달성 시마다 <strong>+10 P</strong> 추가<br/>
-        • <strong>🔥 당일 연속 학습 보너스:</strong> 제날짜에 빠짐없이 연속 완료 시 <strong>10일 연속 +30 P</strong> / <strong>20일 연속 +50 P</strong> / <strong>30일 이상 10일마다 +100 P</strong>!
-      </div>
-      <div class="point-dashboard-grid" id="pointDashboardGrid"></div>
+  <!-- 로그인 후 메인 앱 화면 -->
+  <div id="appMainArea" class="hidden">
+    <div class="profile-banner" id="profileBanner"></div>
 
-      <h3 class="sec-title" style="margin:14px 0 10px;">📊 날짜별 학습 완료 기록표</h3>
-      <div style="overflow-x:auto;">
-        <table class="board-table" id="progressBoardTable"></table>
+    <div class="level-tabs" id="levelTabs"></div>
+
+    <div id="studyView">
+      <div class="episode-nav-wrap" id="episodeBar"></div>
+
+      <div class="card" id="storyCard">
+        <div class="story-header">
+          <div>
+            <h2 class="story-title" id="storyTitle">스토리를 불러오는 중...</h2>
+            <div class="story-meta" id="storyMeta"></div>
+          </div>
+          <div class="controls">
+            <button class="btn btn-primary" onclick="playAllSentences()">🔊 전체 듣기</button>
+            <button class="btn" onclick="stopSpeech()">⏹ 정지</button>
+            <button class="btn" onclick="cycleSpeed()" id="speedBtn">속도 1.0x</button>
+            <button class="btn" onclick="toggleAllKo()" id="allKoBtn">🇰🇷 전체 해석 보기</button>
+          </div>
+        </div>
+
+        <div id="chunkStatusBar" class="chunk-status-bar hidden">
+          <span id="chunkStatusText">읽기 연습 중...</span>
+          <button class="mini-btn" onclick="stopSpeech()">중지</button>
+        </div>
+
+        <div class="legend-bar" id="legendBar"></div>
+
+        <div class="sentence-list" id="sentenceList"></div>
+      </div>
+
+      <div class="card">
+        <div class="sec-header-row">
+          <h3 class="sec-title">💡 오늘의 핵심 어휘</h3>
+          <button class="btn" onclick="toggleAllVocabMean()" id="allVocabBtn">🇰🇷 전체 뜻 보기</button>
+        </div>
+        <div class="vocab-grid" id="vocabGrid"></div>
+      </div>
+
+      <div class="card">
+        <div class="sec-header-row">
+          <h3 class="sec-title">✨ 꼭 기억할 핵심 표현</h3>
+          <button class="btn" onclick="toggleAllPhraseKo()" id="allPhraseBtn">🇰🇷 전체 해석 보기</button>
+        </div>
+        <div class="phrase-list" id="phraseList"></div>
+      </div>
+
+      <div class="card">
+        <h3 class="sec-title" style="margin-bottom:10px;">🧩 이해도 확인 퀴즈 (전 문항 정답 시 자동 완료)</h3>
+        <div id="quizList"></div>
+      </div>
+
+      <div class="card">
+        <h3 class="sec-title" style="margin-bottom:10px;">🗣️ 나도 주인공처럼 말해보기 (전 문장 녹음 시 자동 완료)</h3>
+        <div id="speakingList"></div>
+      </div>
+
+      <div class="card">
+        <div class="sec-header-row">
+          <h3 class="sec-title">🏆 오늘의 학습 자동 완료 현황</h3>
+          <span style="font-size:11.5px;color:var(--muted);">본문 녹음 · 퀴즈 정답 · 스피킹 녹음 완료 시 자동 체크!</span>
+        </div>
+        <div class="complete-bar" id="completeBar"></div>
+        <div id="celebrationBanner" class="celebration-banner hidden"></div>
+      </div>
+    </div>
+
+    <div id="boardView" class="hidden">
+      <div class="card">
+        <h3 class="sec-title" style="margin-bottom:10px;">🪙 우리 가족 누적 포인트 & 연속 학습 현황</h3>
+        <div class="point-rule-box">
+          <strong>📌 우리 가족 포인트 적립 규칙</strong><br/>
+          • <strong>기본 완료 점수:</strong> 당일 학습이든 밀린 학습 복습이든 3단계 자동 완료 시 무조건 <strong>+10 P</strong> 지급<br/>
+          • <strong>누적 완료 보너스 (비연속):</strong> 총 완료 편수 10편 단위 달성 시마다 <strong>+10 P</strong> 추가<br/>
+          • <strong>🔥 당일 연속 학습 보너스:</strong> 제날짜에 빠짐없이 연속 완료 시 <strong>10일 연속 +30 P</strong> / <strong>20일 연속 +50 P</strong> / <strong>30일 이상 10일마다 +100 P</strong>!
+        </div>
+        <div class="point-dashboard-grid" id="pointDashboardGrid"></div>
+
+        <h3 class="sec-title" style="margin:14px 0 10px;">📊 날짜별 학습 완료 기록표</h3>
+        <div style="overflow-x:auto;">
+          <table class="board-table" id="progressBoardTable"></table>
+        </div>
       </div>
     </div>
   </div>
@@ -681,10 +768,16 @@
 // ★ 여기에 Apps Script 웹앱 주소를 한 번만 넣어두면 모든 기기에서 자동 연결됩니다!
 const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycby7pqe1UeemP6U6QNUacfO65hF-7g93Eh9aj1N-Rjis1WECHgAgYGQF3aWiB4Ocm9Ye6A/exec";
 
-const USERS = [
-  { id: 'seoa', name: '서아', level: 'lv1', desc: '초3 · 단어별/의미끊기' },
-  { id: 'seoyul', name: '서율', level: 'lv2', desc: '초6 · 의미끊기 스토리' },
-  { id: 'mom', name: '엄마', level: 'lv3', desc: '성인 · A2~B1 원서형' }
+const DEFAULT_USERS = [
+  { id: 'seoa', name: '서아', pin: '1111', defaultLevel: 'lv1' },
+  { id: 'seoyul', name: '서율', pin: '2222', defaultLevel: 'lv2' },
+  { id: 'mom', name: '엄마', pin: '0000', defaultLevel: 'lv3' }
+];
+
+const LEVELS = [
+  { id: 'lv1', title: 'Lv.1 기초', desc: '단어별 · 의미끊기 읽기' },
+  { id: 'lv2', title: 'Lv.2 중급', desc: '의미끊기 스토리 독해' },
+  { id: 'lv3', title: 'Lv.3 원서형', desc: 'A2~B1 원서 호흡 독해' }
 ];
 
 const CHARACTER_NAMES = [
@@ -706,7 +799,11 @@ const NO_BREAK_AFTER_WORDS = new Set([
   'to', 'very', 'so', 'too', 'big', 'blue', 'thin', 'old', 'new', 'little', 'small', 'dark', 'empty', 'famous'
 ]);
 
-let currentUser = localStorage.getItem('selected_user') || 'seoa';
+let usersList = [...DEFAULT_USERS];
+let currentUser = localStorage.getItem('logged_in_user') || '';
+let selectedLoginUser = 'seoa';
+let currentLevel = 'lv1';
+
 let stories = [];
 let currentStoryIdx = 0;
 let progressData = JSON.parse(localStorage.getItem('backup_progress') || '{}');
@@ -717,9 +814,13 @@ let speechRate = 1.0;
 let stepPlayCancel = false;
 const isReviewMode = new URLSearchParams(window.location.search).get('mode') === 'review';
 
+// 녹음 및 자동 완료 추적 상태 (회차·레벨 전환 시 초기화)
 let activeRecorder = null;
-let activeRecIdx = null;
-let recordedAudioUrls = {};
+let activeRecTarget = null; // { type: 'sent' | 'speak', idx: number }
+let recordStartTime = 0;
+let sentRecordUrls = {};   // { [idx]: blobUrl }
+let speakRecordUrls = {};  // { [idx]: blobUrl }
+let quizSolvedMap = {};    // { [qIdx]: true }
 
 function getGasUrl() {
   return localStorage.getItem('gas_web_app_url') || DEFAULT_GAS_URL;
@@ -743,7 +844,7 @@ window.addEventListener('DOMContentLoaded', async () => {
       renderReviewList();
     };
   }
-  renderUserTabs();
+  renderLoginChoices();
   await loadData();
 });
 
@@ -752,6 +853,7 @@ async function loadData() {
   const badge = document.getElementById('connStatus');
   if (!gasUrl) {
     badge.textContent = '⚠️ 시트 미연결';
+    updateAuthView();
     return;
   }
   try {
@@ -759,6 +861,9 @@ async function loadData() {
     const res = await fetch(fetchUrl);
     const data = await res.json();
     if (data.status === 'ok') {
+      if (Array.isArray(data.users) && data.users.length > 0) {
+        usersList = data.users;
+      }
       stories = data.stories || [];
       if (data.progress) {
         progressData = data.progress;
@@ -766,14 +871,97 @@ async function loadData() {
       }
       badge.textContent = '✅ 시트 실시간 연동됨';
       badge.classList.add('ok');
-      renderUserTabs();
-      renderEpisodeBar();
-      renderStory();
-      renderProgressBoard();
+      renderLoginChoices();
+      updateAuthView();
     }
   } catch (e) {
     badge.textContent = '❌ 연결 오류';
+    updateAuthView();
   }
+}
+
+/* ==================== 로그인 / 로그아웃 로직 ==================== */
+function renderLoginChoices() {
+  const grid = document.getElementById('loginUserGrid');
+  if (!grid) return;
+  grid.innerHTML = usersList.map(u => `
+    <button type="button" class="login-user-btn ${u.id === selectedLoginUser ? 'selected' : ''}" onclick="chooseLoginUser('${u.id}')">
+      ${u.name}
+    </button>
+  `).join('');
+}
+
+function chooseLoginUser(userId) {
+  selectedLoginUser = userId;
+  document.getElementById('loginErrorMsg').textContent = '';
+  renderLoginChoices();
+  const pinInput = document.getElementById('pinInput');
+  if (pinInput) {
+    pinInput.value = '';
+    pinInput.focus();
+  }
+}
+
+function submitLogin() {
+  const pinVal = document.getElementById('pinInput').value.trim();
+  const target = usersList.find(u => u.id === selectedLoginUser);
+  const errEl = document.getElementById('loginErrorMsg');
+
+  if (!target) {
+    errEl.textContent = '사용자를 먼저 선택해 주세요.';
+    return;
+  }
+  if (pinVal !== String(target.pin)) {
+    errEl.textContent = '❌ 비밀번호(PIN)가 일치하지 않습니다.';
+    return;
+  }
+
+  errEl.textContent = '';
+  document.getElementById('pinInput').value = '';
+  currentUser = target.id;
+  localStorage.setItem('logged_in_user', currentUser);
+  currentLevel = target.defaultLevel || 'lv1';
+  speechRate = currentLevel === 'lv1' ? 0.85 : 1.0;
+  document.getElementById('speedBtn').textContent = `속도 ${speechRate}x`;
+  resetSessionTrackers();
+  updateAuthView();
+}
+
+function logoutUser() {
+  stopSpeech();
+  currentUser = '';
+  localStorage.removeItem('logged_in_user');
+  resetSessionTrackers();
+  updateAuthView();
+}
+
+function updateAuthView() {
+  const userObj = usersList.find(u => u.id === currentUser);
+  const isLoggedIn = !!userObj;
+
+  document.getElementById('loginView').classList.toggle('hidden', isLoggedIn);
+  document.getElementById('appMainArea').classList.toggle('hidden', !isLoggedIn);
+  document.getElementById('tabStudyBtn').classList.toggle('hidden', !isLoggedIn);
+  document.getElementById('tabBoardBtn').classList.toggle('hidden', !isLoggedIn);
+
+  if (isLoggedIn) {
+    if (!LEVELS.some(l => l.id === currentLevel)) {
+      currentLevel = userObj.defaultLevel || 'lv1';
+    }
+    renderProfileBanner();
+    renderLevelTabs();
+    renderEpisodeBar();
+    renderStory();
+    renderProgressBoard();
+  }
+}
+
+function resetSessionTrackers() {
+  sentRecordUrls = {};
+  speakRecordUrls = {};
+  quizSolvedMap = {};
+  activeRecorder = null;
+  activeRecTarget = null;
 }
 
 function switchMainView(view) {
@@ -789,7 +977,7 @@ function isDateCompleted(userId, dateStr) {
   return !!(p && p.read && p.quiz && p.speak);
 }
 
-// ★ 당일 연속 학습(Streak) 보너스 계산 (10일마다 +30P, +50P, +100P)
+/* ==================== 포인트 & 연속 학습 계산 ==================== */
 function getStreakMilestoneBonus(streakCount) {
   if (streakCount <= 0 || streakCount % 10 !== 0) return 0;
   if (streakCount === 10) return 30;
@@ -797,10 +985,6 @@ function getStreakMilestoneBonus(streakCount) {
   return 100;
 }
 
-// ★ 포인트 종합 계산:
-// 1) 모든 완료 회차(당일+복습) 기본 +10P
-// 2) 총 누적 완료 10편마다 +10P (비연속 누적 보너스)
-// 3) 제날짜 당일 연속 완료 10일마다 +30P / +50P / +100P (연속 보너스)
 function calculateUserStats(userId) {
   const userProg = progressData[userId] || {};
   const completedDates = Object.keys(userProg)
@@ -811,7 +995,6 @@ function calculateUserStats(userId) {
   const basePoints = totalCompletedCount * 10;
   const cumulativeBonusPoints = Math.floor(totalCompletedCount / 10) * 10;
 
-  // 당일 제때 완료한 기록 판별 (completedDate가 비어있는 기존 데이터는 당일 완료로 인정)
   const onTimeDates = completedDates.filter(d => {
     const comp = userProg[d].completedDate;
     return !comp || comp === d;
@@ -834,7 +1017,6 @@ function calculateUserStats(userId) {
     prevDateMs = currDateMs;
   }
 
-  // 현재 진행 중인 연속 학습 일수 계산 (마지막 당일 완료일이 오늘 또는 어제여야 유지)
   let activeStreak = 0;
   if (onTimeDates.length > 0) {
     const lastStr = onTimeDates[onTimeDates.length - 1];
@@ -875,35 +1057,43 @@ function calculateUserStats(userId) {
   };
 }
 
-function renderUserTabs() {
-  const wrap = document.getElementById('userTabs');
+function renderProfileBanner() {
+  const banner = document.getElementById('profileBanner');
+  const userObj = usersList.find(u => u.id === currentUser);
+  if (!banner || !userObj) return;
+
   const activeDate = stories[currentStoryIdx]?.date;
-  wrap.innerHTML = USERS.map(u => {
-    const done = activeDate && isDateCompleted(u.id, activeDate);
-    const stats = calculateUserStats(u.id);
-    return `
-      <div class="user-tab ${u.id === currentUser ? 'active' : ''}" onclick="selectUser('${u.id}')">
-        <span class="name">${u.name}</span>
-        <span class="desc">${u.desc}</span>
-        <div class="user-stats-row">
-          <span class="point-pill">🪙 ${stats.totalPoints} P</span>
-          <span class="streak-pill">🔥 ${stats.activeStreak}일 연속</span>
-        </div>
-        ${done ? '<span class="done-pill">✅ 오늘 완료</span>' : ''}
-      </div>
-    `;
-  }).join('');
+  const done = activeDate && isDateCompleted(userObj.id, activeDate);
+  const stats = calculateUserStats(userObj.id);
+
+  banner.innerHTML = `
+    <div class="profile-info">
+      <span class="profile-name">👤 ${userObj.name} 님</span>
+      <span class="point-pill">🪙 ${stats.totalPoints} P</span>
+      <span class="streak-pill">🔥 ${stats.activeStreak}일 연속</span>
+      ${done ? '<span class="done-pill">✅ 이 회차 완료</span>' : ''}
+    </div>
+    <button class="btn" onclick="logoutUser()">🔄 사용자 전환 / 로그아웃</button>
+  `;
 }
 
-function selectUser(userId) {
+function renderLevelTabs() {
+  const wrap = document.getElementById('levelTabs');
+  wrap.innerHTML = LEVELS.map(lv => `
+    <div class="level-tab ${lv.id === currentLevel ? 'active' : ''}" onclick="selectLevel('${lv.id}')">
+      <span class="lv-title">${lv.title}</span>
+      <span class="lv-desc">${lv.desc}</span>
+    </div>
+  `).join('');
+}
+
+function selectLevel(lvId) {
   stopSpeech();
-  recordedAudioUrls = {};
-  currentUser = userId;
-  localStorage.setItem('selected_user', userId);
-  speechRate = userId === 'seoa' ? 0.85 : 1.0;
+  resetSessionTrackers();
+  currentLevel = lvId;
+  speechRate = lvId === 'lv1' ? 0.85 : 1.0;
   document.getElementById('speedBtn').textContent = `속도 ${speechRate}x`;
-  renderUserTabs();
-  renderEpisodeBar();
+  renderLevelTabs();
   renderStory();
 }
 
@@ -942,7 +1132,7 @@ function renderEpisodeBar() {
 
 function selectEpisode(idx) {
   stopSpeech();
-  recordedAudioUrls = {};
+  resetSessionTrackers();
   currentStoryIdx = idx;
   showAllKo = false;
   showAllVocabMean = false;
@@ -950,7 +1140,7 @@ function selectEpisode(idx) {
   document.getElementById('allKoBtn').textContent = '🇰🇷 전체 해석 보기';
   document.getElementById('allVocabBtn').textContent = '🇰🇷 전체 뜻 보기';
   document.getElementById('allPhraseBtn').textContent = '🇰🇷 전체 해석 보기';
-  renderUserTabs();
+  renderProfileBanner();
   renderEpisodeBar();
   renderStory();
 }
@@ -966,12 +1156,12 @@ function getSceneIcon(sentenceObj) {
   if (t.includes('stomach') || t.includes('indigestion') || t.includes('bathroom') || t.includes('restroom')) return '😣';
   if (t.includes('laugh') || t.includes('smile') || t.includes('happy') || t.includes('joy')) return '😊';
   if (t.includes('embarrassed') || t.includes('shame') || t.includes('red') || t.includes('hide') || t.includes('hid')) return '😳';
-  if (t.includes('thief') || t.includes('culprit') || t.includes('catch') || t.includes('police')) return '🕵️';
-  if (t.includes('flashlight') || t.includes('magnifying') || t.includes('clue') || t.includes('examine')) return '🔍';
+  if (t.includes('thief') || t.includes('culprit') || t.includes('catch') || t.includes('police') || t.includes('guard')) return '🕵️';
+  if (t.includes('flashlight') || t.includes('magnifying') || t.includes('clue') || t.includes('examine') || t.includes('spot')) return '🔍';
   if (t.includes('pocket') || t.includes('gadget') || t.includes('magic')) return '🔮';
   if (t.includes('water') || t.includes('window')) return '🥤';
-  if (t.includes('note') || t.includes('letter')) return '💌';
-  if (t.includes('scary') || t.includes('fear') || t.includes('flinch') || t.includes('alarm')) return '😨';
+  if (t.includes('note') || t.includes('letter') || t.includes('music') || t.includes('piano')) return '🎹';
+  if (t.includes('scary') || t.includes('fear') || t.includes('flinch') || t.includes('alarm') || t.includes('shout')) return '😨';
   return '📖';
 }
 
@@ -1084,26 +1274,26 @@ function renderStory() {
   const story = stories[currentStoryIdx];
   if (!story) return;
 
-  const userObj = USERS.find(u => u.id === currentUser);
-  const isChildMode = userObj.level === 'lv1' || userObj.level === 'lv2';
-  const lvData = story.levels[userObj.level];
+  const lvObj = LEVELS.find(l => l.id === currentLevel);
+  const isChildMode = currentLevel === 'lv1' || currentLevel === 'lv2';
+  const lvData = story.levels[currentLevel];
 
   document.getElementById('storyTitle').textContent = story.title;
-  document.getElementById('storyMeta').textContent = `${story.date} · ${userObj.name} 맞춤 난이도 (${userObj.desc})`;
+  document.getElementById('storyMeta').textContent = `${story.date} · ${lvObj.title} (${lvObj.desc})`;
 
   document.getElementById('legendBar').innerHTML = isChildMode
     ? `
-      <span class="legend-item">🔤 <strong>단어별</strong>: 한 단어씩 반복 연습</span>
-      <span class="legend-item">✂️ <strong>의미끊기</strong>: 의미 덩어리 하이라이트 연습</span>
-      <span class="legend-item"><span class="char-name">인물이름</span> 등장인물</span>
+      <span class="legend-item">🔤 <strong>단어별</strong>: 한 단어씩 읽기</span>
+      <span class="legend-item">✂️ <strong>의미끊기</strong>: 의미 덩어리 읽기</span>
+      <span class="legend-item">🎤 <strong>문장 녹음</strong>: 전 문장 녹음 시 읽기 자동 완료</span>
       <span class="legend-item"><span class="vocab-highlight">핵심단어</span> 터치 시 뜻</span>
-      ${isReviewMode ? '<span class="legend-item"><span class="review-chunk-slash">/</span> 관리자 검수용 끊어읽기 위치</span>' : ''}
+      ${isReviewMode ? '<span class="legend-item"><span class="review-chunk-slash">/</span> 관리자 검수용 끊어읽기</span>' : ''}
     `
     : `
+      <span class="legend-item">🎤 <strong>문장 녹음</strong>: 전 문장 녹음 시 읽기 자동 완료</span>
       <span class="legend-item"><span class="char-name">인물이름</span> 등장인물</span>
       <span class="legend-item"><span class="vocab-highlight">핵심단어</span> 터치하면 뜻 & 발음</span>
-      <span class="legend-item">🖼️ 왼쪽 그림으로 상황 유추하기</span>
-      ${isReviewMode ? '<span class="legend-item"><span class="review-chunk-slash">/</span> 관리자 검수용 끊어읽기 위치</span>' : ''}
+      ${isReviewMode ? '<span class="legend-item"><span class="review-chunk-slash">/</span> 관리자 검수용 끊어읽기</span>' : ''}
     `;
 
   if (!lvData) {
@@ -1111,31 +1301,7 @@ function renderStory() {
     return;
   }
 
-  const sList = document.getElementById('sentenceList');
-  sList.innerHTML = lvData.sentences.map((s, idx) => `
-    <div class="sentence-card" id="sent-card-${idx}">
-      <div class="sentence-row">
-        <div class="scene-visual" title="상황 그림">${getSceneIcon(s)}</div>
-        <div class="sentence-body">
-          <div class="sentence-top">
-            <div class="sentence-en">${formatSentenceHtml(s, lvData.vocab, idx)}</div>
-            <div class="sentence-actions">
-              ${isChildMode ? `
-                <button class="mini-btn word-mode" onclick="playWordByWord(${idx})">🔤 단어별</button>
-                <button class="mini-btn chunk-mode" onclick="playBySemanticChunks(${idx})">✂️ 의미끊기</button>
-              ` : ''}
-              <button class="mini-btn" onclick="speakSingle(${idx})">🔊 전체</button>
-              <button class="mini-btn" onclick="toggleSingleKo(${idx})">한글해석</button>
-            </div>
-          </div>
-          <div class="sentence-ko ${showAllKo ? '' : 'hidden'}" id="sent-ko-${idx}">
-            <div>${s.ko}</div>
-            ${s.note ? `<div class="nuance-note">${s.note}</div>` : ''}
-          </div>
-        </div>
-      </div>
-    </div>
-  `).join('');
+  renderSentenceCards(lvData, isChildMode);
 
   const vGrid = document.getElementById('vocabGrid');
   const vocabEntries = Object.entries(lvData.vocab || {});
@@ -1180,6 +1346,42 @@ function renderStory() {
   renderCompleteBar();
 }
 
+function renderSentenceCards(lvData, isChildMode) {
+  const sList = document.getElementById('sentenceList');
+  sList.innerHTML = lvData.sentences.map((s, idx) => {
+    const isRec = activeRecTarget && activeRecTarget.type === 'sent' && activeRecTarget.idx === idx;
+    const hasAudio = !!sentRecordUrls[idx];
+    return `
+      <div class="sentence-card ${hasAudio ? 'rec-done' : ''}" id="sent-card-${idx}">
+        <div class="sentence-row">
+          <div class="scene-visual" title="상황 그림">${getSceneIcon(s)}</div>
+          <div class="sentence-body">
+            <div class="sentence-top">
+              <div class="sentence-en">${formatSentenceHtml(s, lvData.vocab, idx)}</div>
+              <div class="sentence-actions">
+                ${isChildMode ? `
+                  <button class="mini-btn word-mode" onclick="playWordByWord(${idx})">🔤 단어별</button>
+                  <button class="mini-btn chunk-mode" onclick="playBySemanticChunks(${idx})">✂️ 의미끊기</button>
+                ` : ''}
+                <button class="mini-btn" onclick="speakSingle(${idx})">🔊 듣기</button>
+                <button class="mini-btn rec-btn ${isRec ? 'recording' : ''} ${hasAudio && !isRec ? 'rec-done-btn' : ''}" onclick="toggleRecord('sent', ${idx})">
+                  ${isRec ? '⏹ 중지' : (hasAudio ? '✅ 재녹음' : '🎤 녹음')}
+                </button>
+                ${hasAudio ? `<button class="mini-btn rec-done-btn" onclick="playMyRecording('sent', ${idx})">▶️ 내발음</button>` : ''}
+                <button class="mini-btn" onclick="toggleSingleKo(${idx})">해석</button>
+              </div>
+            </div>
+            <div class="sentence-ko ${showAllKo ? '' : 'hidden'}" id="sent-ko-${idx}">
+              <div>${s.ko}</div>
+              ${s.note ? `<div class="nuance-note">${s.note}</div>` : ''}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
 function toggleSingleVocabMean(vIdx) {
   document.getElementById(`vocab-mean-${vIdx}`).classList.toggle('hidden');
 }
@@ -1204,6 +1406,7 @@ function toggleAllPhraseKo() {
   });
 }
 
+/* ==================== 발음 교정 & 순차 재생 ==================== */
 function normalizePronunciation(text) {
   return text
     .replace(/\bBisil('s)?\b/gi, (_, s) => `Beeseel${s || ''}`)
@@ -1318,8 +1521,7 @@ async function playWordByWord(sentIdx) {
   const isCancelled = () => stepPlayCancel || window._currentStepRunId !== runId;
 
   const story = stories[currentStoryIdx];
-  const userObj = USERS.find(u => u.id === currentUser);
-  const sentence = story.levels[userObj.level].sentences[sentIdx].en;
+  const sentence = story.levels[currentLevel].sentences[sentIdx].en;
   const words = sentence.split(/\s+/);
 
   const card = document.getElementById(`sent-card-${sentIdx}`);
@@ -1361,8 +1563,7 @@ async function playBySemanticChunks(sentIdx) {
   const isCancelled = () => stepPlayCancel || window._currentStepRunId !== runId;
 
   const story = stories[currentStoryIdx];
-  const userObj = USERS.find(u => u.id === currentUser);
-  const sentenceObj = story.levels[userObj.level].sentences[sentIdx];
+  const sentenceObj = story.levels[currentLevel].sentences[sentIdx];
   const words = sentenceObj.en.split(/\s+/);
   const chunks = getSentenceChunks(sentenceObj);
 
@@ -1400,13 +1601,14 @@ async function playBySemanticChunks(sentIdx) {
   }
 }
 
+/* ==================== 통합 녹음 로직 (본문 문장 + 스피킹 문장) ==================== */
 function renderSpeakingList(speakingArr, isChildMode) {
   const spList = document.getElementById('speakingList');
   spList.innerHTML = speakingArr.map((sp, idx) => {
-    const isRec = activeRecIdx === idx;
-    const hasAudio = !!recordedAudioUrls[idx];
+    const isRec = activeRecTarget && activeRecTarget.type === 'speak' && activeRecTarget.idx === idx;
+    const hasAudio = !!speakRecordUrls[idx];
     return `
-      <div class="speak-item">
+      <div class="speak-item ${hasAudio ? 'rec-done' : ''}">
         <div style="flex:1;min-width:200px;">
           <div style="font-weight:700;">"${sp.en}"</div>
           <div style="font-size:12px;color:var(--muted);">${sp.ko}</div>
@@ -1415,21 +1617,20 @@ function renderSpeakingList(speakingArr, isChildMode) {
           <button class="btn" onclick="speakText('${sp.en.replace(/'/g, "\\'")}', ${isChildMode ? 0.72 : 'null'})">
             ${isChildMode ? '🐢 천천히 듣기' : '🔊 원어민 듣기'}
           </button>
-          <button class="btn btn-rec ${isRec ? 'recording' : ''}" onclick="toggleRecord(${idx})">
-            ${isRec ? '⏹ 녹음 중지' : '🎤 녹음하기'}
+          <button class="btn btn-rec ${isRec ? 'recording' : ''}" onclick="toggleRecord('speak', ${idx})">
+            ${isRec ? '⏹ 녹음 중지' : (hasAudio ? '✅ 다시 녹음' : '🎤 녹음하기')}
           </button>
-          ${hasAudio ? `<button class="btn btn-play-rec" onclick="playMyRecording(${idx})">▶️ 내 발음 듣기</button>` : ''}
+          ${hasAudio ? `<button class="btn btn-play-rec" onclick="playMyRecording('speak', ${idx})">▶️ 내 발음 듣기</button>` : ''}
         </div>
       </div>
     `;
   }).join('');
 }
 
-async function toggleRecord(idx) {
+async function toggleRecord(type, idx) {
   const story = stories[currentStoryIdx];
-  const userObj = USERS.find(u => u.id === currentUser);
-  const isChildMode = userObj.level === 'lv1' || userObj.level === 'lv2';
-  const speakingArr = story.levels[userObj.level].speaking || [];
+  const lvData = story.levels[currentLevel];
+  const isChildMode = currentLevel === 'lv1' || currentLevel === 'lv2';
 
   if (activeRecorder && activeRecorder.state === 'recording') {
     activeRecorder.stop();
@@ -1437,39 +1638,189 @@ async function toggleRecord(idx) {
   }
 
   try {
+    stopSpeech();
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const chunks = [];
     const recorder = new MediaRecorder(stream);
     activeRecorder = recorder;
-    activeRecIdx = idx;
+    activeRecTarget = { type, idx };
+    recordStartTime = Date.now();
 
     recorder.ondataavailable = e => {
       if (e.data.size > 0) chunks.push(e.data);
     };
 
     recorder.onstop = () => {
-      const blob = new Blob(chunks, { type: 'audio/webm' });
-      recordedAudioUrls[idx] = URL.createObjectURL(blob);
+      const durationMs = Date.now() - recordStartTime;
       stream.getTracks().forEach(track => track.stop());
       activeRecorder = null;
-      activeRecIdx = null;
-      renderSpeakingList(speakingArr, isChildMode);
+      activeRecTarget = null;
+
+      if (durationMs < 1200) {
+        alert('녹음 시간이 너무 짧아요! 문장을 끝까지 소리 내어 읽은 뒤 중지를 눌러주세요. (최소 1.2초 이상)');
+      } else {
+        const blob = new Blob(chunks, { type: 'audio/webm' });
+        const url = URL.createObjectURL(blob);
+        if (type === 'sent') {
+          sentRecordUrls[idx] = url;
+        } else {
+          speakRecordUrls[idx] = url;
+        }
+      }
+
+      renderSentenceCards(lvData, isChildMode);
+      renderSpeakingList(lvData.speaking || [], isChildMode);
+      checkAutoCompletion();
     };
 
     recorder.start();
-    renderSpeakingList(speakingArr, isChildMode);
+    renderSentenceCards(lvData, isChildMode);
+    renderSpeakingList(lvData.speaking || [], isChildMode);
   } catch (err) {
     alert('마이크 권한을 허용해 주셔야 녹음 기능을 사용할 수 있습니다.');
   }
 }
 
-function playMyRecording(idx) {
-  const url = recordedAudioUrls[idx];
+function playMyRecording(type, idx) {
+  const url = type === 'sent' ? sentRecordUrls[idx] : speakRecordUrls[idx];
   if (!url) return;
   const audio = new Audio(url);
   audio.play();
 }
 
+/* ==================== 퀴즈 & 3단계 자동 완료 판정 ==================== */
+function checkQuiz(btn, qIdx, selectedIdx, correctIdx) {
+  const parent = btn.parentElement;
+  parent.querySelectorAll('.quiz-opt').forEach(b => b.classList.remove('correct', 'wrong'));
+  const fbEl = document.getElementById(`quiz-fb-${qIdx}`);
+  fbEl.classList.remove('hidden', 'ok', 'no');
+
+  if (selectedIdx === correctIdx) {
+    btn.classList.add('correct');
+    fbEl.classList.add('ok');
+    fbEl.textContent = '🎉 정답입니다! 스토리 내용을 아주 정확하게 이해했네요!';
+    quizSolvedMap[qIdx] = true;
+  } else {
+    btn.classList.add('wrong');
+    fbEl.classList.add('no');
+    fbEl.textContent = '😅 아쉬워요! 위 본문을 한 번 더 살펴보고 다시 눌러볼까요?';
+    delete quizSolvedMap[qIdx];
+  }
+  checkAutoCompletion();
+}
+
+async function checkAutoCompletion() {
+  const story = stories[currentStoryIdx];
+  if (!story || !currentUser) return;
+  const lvData = story.levels[currentLevel];
+  if (!lvData) return;
+
+  const p = progressData[currentUser]?.[story.date] || { read: false, quiz: false, speak: false };
+
+  const totalSent = (lvData.sentences || []).length;
+  const doneSent = Object.keys(sentRecordUrls).length;
+  if (!p.read && totalSent > 0 && doneSent >= totalSent) {
+    await markStepDone('read');
+  }
+
+  const totalQuiz = (lvData.quiz || []).length;
+  const doneQuiz = Object.keys(quizSolvedMap).length;
+  if (!p.quiz && totalQuiz > 0 && doneQuiz >= totalQuiz) {
+    await markStepDone('quiz');
+  }
+
+  const totalSpeak = (lvData.speaking || []).length;
+  const doneSpeak = Object.keys(speakRecordUrls).length;
+  if (!p.speak && totalSpeak > 0 && doneSpeak >= totalSpeak) {
+    await markStepDone('speak');
+  }
+
+  renderCompleteBar();
+}
+
+function renderCompleteBar() {
+  const story = stories[currentStoryIdx];
+  if (!story) return;
+  const lvData = story.levels[currentLevel] || { sentences: [], quiz: [], speaking: [] };
+  const p = progressData[currentUser]?.[story.date] || { read: false, quiz: false, speak: false };
+
+  const totalSent = (lvData.sentences || []).length;
+  const doneSent = Object.keys(sentRecordUrls).length;
+
+  const totalQuiz = (lvData.quiz || []).length;
+  const doneQuiz = Object.keys(quizSolvedMap).length;
+
+  const totalSpeak = (lvData.speaking || []).length;
+  const doneSpeak = Object.keys(speakRecordUrls).length;
+
+  const steps = [
+    {
+      done: p.read,
+      label: p.read ? '✅ 본문 녹음 완료' : `📖 본문 녹음 (${doneSent}/${totalSent}문장)`
+    },
+    {
+      done: p.quiz,
+      label: p.quiz ? '✅ 퀴즈 정답 완료' : `🧩 퀴즈 정답 (${doneQuiz}/${totalQuiz}문항)`
+    },
+    {
+      done: p.speak,
+      label: p.speak ? '✅ 스피킹 녹음 완료' : `🗣️ 스피킹 녹음 (${doneSpeak}/${totalSpeak}문장)`
+    }
+  ];
+
+  document.getElementById('completeBar').innerHTML = steps.map(st => `
+    <div class="step-badge ${st.done ? 'done' : ''}">
+      ${st.label}
+    </div>
+  `).join('');
+
+  const allDone = p.read && p.quiz && p.speak;
+  const banner = document.getElementById('celebrationBanner');
+  if (allDone) {
+    const stats = calculateUserStats(currentUser);
+    const isOnTime = !p.completedDate || p.completedDate === story.date;
+    const modeTag = isOnTime
+      ? `🔥 당일 연속 ${stats.activeStreak}일째 달성! (+10 P)`
+      : `📚 지난 회차 복습 완료! (+10 P · 누적 ${stats.totalCompletedCount}편)`;
+    banner.innerHTML = `🎉 축하합니다! 오늘의 학습 3단계를 모두 자동 완료했어요!<br/><span style="font-size:12.5px;font-weight:700;">${modeTag} · 현재 총 누적 포인트: ${stats.totalPoints} P</span>`;
+    banner.classList.remove('hidden');
+  } else {
+    banner.classList.add('hidden');
+  }
+}
+
+async function markStepDone(step) {
+  const story = stories[currentStoryIdx];
+  if (!story || !currentUser) return;
+  if (!progressData[currentUser]) progressData[currentUser] = {};
+  if (!progressData[currentUser][story.date]) {
+    progressData[currentUser][story.date] = { read: false, quiz: false, speak: false, completedDate: '' };
+  }
+  if (progressData[currentUser][story.date][step]) return;
+
+  progressData[currentUser][story.date][step] = true;
+
+  const p = progressData[currentUser][story.date];
+  if (p.read && p.quiz && p.speak && !p.completedDate) {
+    p.completedDate = getTodayKstStr();
+  }
+  localStorage.setItem('backup_progress', JSON.stringify(progressData));
+
+  renderCompleteBar();
+  renderProfileBanner();
+  renderEpisodeBar();
+  renderProgressBoard();
+
+  const gasUrl = getGasUrl();
+  if (gasUrl) {
+    await fetch(gasUrl, {
+      method: 'POST',
+      body: JSON.stringify({ user: currentUser, date: story.date, step })
+    });
+  }
+}
+
+/* ==================== 기타 오디오 & 해석 토글 ==================== */
 function toggleSingleKo(idx) {
   document.getElementById(`sent-ko-${idx}`).classList.toggle('hidden');
 }
@@ -1482,23 +1833,6 @@ function toggleAllKo() {
   });
 }
 
-function checkQuiz(btn, qIdx, selectedIdx, correctIdx) {
-  const parent = btn.parentElement;
-  parent.querySelectorAll('.quiz-opt').forEach(b => b.classList.remove('correct', 'wrong'));
-  const fbEl = document.getElementById(`quiz-fb-${qIdx}`);
-  fbEl.classList.remove('hidden', 'ok', 'no');
-
-  if (selectedIdx === correctIdx) {
-    btn.classList.add('correct');
-    fbEl.classList.add('ok');
-    fbEl.textContent = '🎉 정답입니다! 스토리 내용을 아주 정확하게 이해했네요!';
-  } else {
-    btn.classList.add('wrong');
-    fbEl.classList.add('no');
-    fbEl.textContent = '😅 아쉬워요! 위 본문을 한 번 더 살펴보고 다시 눌러볼까요?';
-  }
-}
-
 function speakText(text, customRate) {
   stopSpeech();
   window.speechSynthesis.speak(createUtterance(text, customRate));
@@ -1507,8 +1841,7 @@ function speakText(text, customRate) {
 function speakSingle(idx) {
   stopSpeech();
   const story = stories[currentStoryIdx];
-  const userObj = USERS.find(u => u.id === currentUser);
-  const s = story.levels[userObj.level].sentences[idx];
+  const s = story.levels[currentLevel].sentences[idx];
   const card = document.getElementById(`sent-card-${idx}`);
   card.classList.add('speaking');
 
@@ -1521,8 +1854,7 @@ function playAllSentences() {
   stopSpeech();
   stepPlayCancel = false;
   const story = stories[currentStoryIdx];
-  const userObj = USERS.find(u => u.id === currentUser);
-  const list = story.levels[userObj.level].sentences;
+  const list = story.levels[currentLevel].sentences;
   let idx = 0;
 
   function next() {
@@ -1555,71 +1887,11 @@ function cycleSpeed() {
   document.getElementById('speedBtn').textContent = `속도 ${speechRate}x`;
 }
 
-function renderCompleteBar() {
-  const story = stories[currentStoryIdx];
-  if (!story) return;
-  const p = progressData[currentUser]?.[story.date] || { read: false, quiz: false, speak: false };
-  const steps = [
-    { key: 'read', label: '📖 스토리 읽기 완료' },
-    { key: 'quiz', label: '🧩 퀴즈 풀기 완료' },
-    { key: 'speak', label: '🗣️ 소리내어 말하기 완료' }
-  ];
-
-  document.getElementById('completeBar').innerHTML = steps.map(st => `
-    <button class="step-btn ${p[st.key] ? 'done' : ''}" onclick="markStepDone('${st.key}')">
-      ${p[st.key] ? '✅ ' : '⬜ '}${st.label}
-    </button>
-  `).join('');
-
-  const allDone = p.read && p.quiz && p.speak;
-  const banner = document.getElementById('celebrationBanner');
-  if (allDone) {
-    const stats = calculateUserStats(currentUser);
-    const isOnTime = !p.completedDate || p.completedDate === story.date;
-    const modeTag = isOnTime
-      ? `🔥 당일 연속 ${stats.activeStreak}일째 달성! (+10 P)`
-      : `📚 지난 회차 복습 완료! (+10 P · 누적 ${stats.totalCompletedCount}편)`;
-    banner.innerHTML = `🎉 축하합니다! 오늘의 학습 3단계를 모두 완료했어요!<br/><span style="font-size:12.5px;font-weight:700;">${modeTag} · 현재 총 누적 포인트: ${stats.totalPoints} P</span>`;
-    banner.classList.remove('hidden');
-  } else {
-    banner.classList.add('hidden');
-  }
-}
-
-async function markStepDone(step) {
-  const story = stories[currentStoryIdx];
-  if (!story) return;
-  if (!progressData[currentUser]) progressData[currentUser] = {};
-  if (!progressData[currentUser][story.date]) {
-    progressData[currentUser][story.date] = { read: false, quiz: false, speak: false, completedDate: '' };
-  }
-  progressData[currentUser][story.date][step] = true;
-
-  const p = progressData[currentUser][story.date];
-  if (p.read && p.quiz && p.speak && !p.completedDate) {
-    p.completedDate = getTodayKstStr();
-  }
-  localStorage.setItem('backup_progress', JSON.stringify(progressData));
-
-  renderCompleteBar();
-  renderUserTabs();
-  renderEpisodeBar();
-  renderProgressBoard();
-
-  const gasUrl = getGasUrl();
-  if (gasUrl) {
-    await fetch(gasUrl, {
-      method: 'POST',
-      body: JSON.stringify({ user: currentUser, date: story.date, step })
-    });
-  }
-}
-
+/* ==================== 학습 현황표 & 포인트 대시보드 ==================== */
 function renderProgressBoard() {
-  // 1) 상단 가족별 포인트 요약 카드 렌더링
   const dashEl = document.getElementById('pointDashboardGrid');
   if (dashEl) {
-    dashEl.innerHTML = USERS.map(u => {
+    dashEl.innerHTML = usersList.map(u => {
       const s = calculateUserStats(u.id);
       return `
         <div class="point-summary-card">
@@ -1641,7 +1913,6 @@ function renderProgressBoard() {
     }).join('');
   }
 
-  // 2) 하단 날짜별 완료 기록표 렌더링
   const table = document.getElementById('progressBoardTable');
   if (!stories.length) {
     table.innerHTML = '<tr><td>표시할 학습 데이터가 없습니다.</td></tr>';
@@ -1653,9 +1924,7 @@ function renderProgressBoard() {
       <tr>
         <th>날짜</th>
         <th>에피소드</th>
-        <th>서아 (초3)</th>
-        <th>서율 (초6)</th>
-        <th>엄마</th>
+        ${usersList.map(u => `<th>${u.name}</th>`).join('')}
       </tr>
     </thead>
     <tbody>
@@ -1664,7 +1933,7 @@ function renderProgressBoard() {
     html += `<tr>
       <td><strong>${st.date}</strong></td>
       <td style="text-align:left;">${st.title}</td>
-      ${USERS.map(u => {
+      ${usersList.map(u => {
         const p = progressData[u.id]?.[st.date];
         if (p && p.read && p.quiz && p.speak) {
           const isOnTime = !p.completedDate || p.completedDate === st.date;
@@ -1684,6 +1953,7 @@ function renderProgressBoard() {
   table.innerHTML = html;
 }
 
+/* ==================== 설정 & 관리자 검수 모달 ==================== */
 function openSettings() {
   document.getElementById('gasUrlInput').value = getGasUrl();
   populateVoiceDropdown();
@@ -1718,7 +1988,7 @@ function renderReviewList() {
 function renderStoryEditor(story) {
   const area = document.getElementById('reviewEditorArea');
   const levels = ['lv1', 'lv2', 'lv3'];
-  const levelNames = { lv1: 'Lv1 서아 (초3)', lv2: 'Lv2 서율 (초6)', lv3: 'Lv3 엄마 (성인)' };
+  const levelNames = { lv1: 'Lv.1 기초', lv2: 'Lv.2 중급', lv3: 'Lv.3 원서형' };
 
   let html = `
     <div style="margin-bottom:12px;">
