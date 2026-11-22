@@ -123,7 +123,7 @@
 
     /* 로그인 화면 카드 */
     .login-card {
-      max-width: 440px;
+      max-width: 460px;
       margin: 24px auto;
       background: #fff;
       border: 1px solid var(--border);
@@ -132,21 +132,42 @@
       text-align: center;
       box-shadow: 0 4px 14px rgba(0,0,0,0.04);
     }
-    .login-user-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 16px 0; }
+    .login-user-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin: 16px 0;
+    }
+    .login-user-grid.cols-2 {
+      grid-template-columns: repeat(2, 1fr);
+    }
     .login-user-btn {
-      padding: 14px 8px;
+      padding: 13px 8px;
       border: 2px solid var(--border);
       border-radius: 12px;
       background: #f8fafc;
       cursor: pointer;
       font-weight: 800;
       font-size: 15px;
+      color: #1e293b;
       transition: all 0.15s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .login-user-btn .u-lv-tag {
+      font-size: 10.5px;
+      font-weight: 600;
+      color: var(--muted);
     }
     .login-user-btn.selected {
       border-color: var(--primary);
       background: var(--primary-soft);
       color: var(--primary);
+    }
+    .login-user-btn.selected .u-lv-tag {
+      color: #2563eb;
     }
     .pin-input {
       width: 180px;
@@ -158,6 +179,39 @@
       border: 2px solid #cbd5e1;
       border-radius: 10px;
       margin-bottom: 12px;
+    }
+    .login-actions-row {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+    .add-user-divider {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px dashed var(--border);
+    }
+
+    /* 새 사용자 등록 모달 내 레벨 선택 카드 */
+    .new-lv-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .new-lv-opt {
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      padding: 9px 6px;
+      text-align: center;
+      cursor: pointer;
+      background: #f8fafc;
+    }
+    .new-lv-opt.selected {
+      border-color: var(--primary);
+      background: var(--primary-soft);
+      color: var(--primary);
     }
 
     /* 보상 상점 카드 스타일 */
@@ -699,12 +753,24 @@
   <div id="loginView" class="login-card">
     <h2 style="margin:0 0 6px;font-size:19px;">👋 누구의 학습장인가요?</h2>
     <p style="margin:0;font-size:12.5px;color:var(--muted);">이름을 선택하고 4자리 비밀번호(PIN)를 입력하세요.</p>
+
     <div class="login-user-grid" id="loginUserGrid"></div>
+
     <div>
       <input id="pinInput" type="password" inputmode="numeric" maxlength="4" class="pin-input" placeholder="••••" onkeydown="if(event.key==='Enter') submitLogin()" />
     </div>
-    <button class="btn btn-primary" style="padding:10px 24px;font-size:14px;" onclick="submitLogin()">🔓 로그인하기</button>
-    <p id="loginErrorMsg" style="color:var(--danger);font-size:12.5px;font-weight:700;margin-top:10px;"></p>
+
+    <div class="login-actions-row">
+      <button class="btn btn-primary" style="padding:10px 26px;font-size:14px;" onclick="submitLogin()">🔓 로그인하기</button>
+    </div>
+    <p id="loginErrorMsg" style="color:var(--danger);font-size:12.5px;font-weight:700;margin-top:10px;margin-bottom:0;"></p>
+
+    <div class="add-user-divider">
+      <p style="margin:0 0 8px;font-size:12px;color:var(--muted);">처음 방문한 친구나 가족이 있나요?</p>
+      <button type="button" class="btn" style="padding:8px 16px;font-size:13px;border-color:#93c5fd;background:#eff6ff;color:#1d4ed8;" onclick="openAddUserModal()">
+        ➕ 새 사용자 추가하기
+      </button>
+    </div>
   </div>
 
   <!-- 로그인 후 메인 앱 화면 -->
@@ -794,9 +860,9 @@
     <!-- 3. 학습 현황표 & 포인트 대시보드 뷰 -->
     <div id="boardView" class="hidden">
       <div class="card">
-        <h3 class="sec-title" style="margin-bottom:10px;">🪙 우리 가족 포인트 & 연속 학습 현황</h3>
+        <h3 class="sec-title" style="margin-bottom:10px;">🪙 우리 가족 & 친구 포인트 · 연속 학습 현황</h3>
         <div class="point-rule-box">
-          <strong>📌 우리 가족 포인트 적립 규칙</strong><br/>
+          <strong>📌 포인트 적립 규칙</strong><br/>
           • <strong>기본 완료 점수:</strong> 당일 학습이든 밀린 학습 복습이든 3단계 자동 완료 시 무조건 <strong>+10 P</strong> 지급<br/>
           • <strong>누적 완료 보너스 (비연속):</strong> 총 완료 편수 10편 단위 달성 시마다 <strong>+10 P</strong> 추가<br/>
           • <strong>🔥 당일 연속 학습 보너스:</strong> 제날짜에 빠짐없이 연속 완료 시 <strong>10일 연속 +30 P</strong> / <strong>20일 연속 +50 P</strong> / <strong>30일 이상 10일마다 +100 P</strong>!
@@ -814,6 +880,50 @@
 
 <div id="wordToast" class="word-toast hidden"></div>
 
+<!-- 새 사용자 등록 모달 -->
+<div id="addUserModal" class="modal-backdrop">
+  <div class="modal-box" style="max-width:420px;">
+    <h3 style="margin-top:0;">➕ 새 사용자 등록</h3>
+    <p style="font-size:12.5px;color:var(--muted);margin-top:0;">등록하면 구글 시트에도 자동 저장되고 바로 시작할 수 있어요.</p>
+
+    <div style="margin-bottom:12px;">
+      <label style="font-weight:700;font-size:12.5px;display:block;margin-bottom:4px;">1. 이름 (예: 민지, 지훈)</label>
+      <input id="newUserNameInput" class="input-field" maxlength="10" placeholder="이름을 입력하세요" />
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <label style="font-weight:700;font-size:12.5px;display:block;margin-bottom:4px;">2. 기본 학습 레벨 선택</label>
+      <div class="new-lv-grid" id="newUserLevelGrid">
+        <div class="new-lv-opt selected" data-lv="lv1" onclick="selectNewUserLevel('lv1')">
+          <div style="font-weight:800;font-size:13px;">Lv.1 기초</div>
+          <div style="font-size:10.5px;color:var(--muted);">초등 저학년 추천</div>
+        </div>
+        <div class="new-lv-opt" data-lv="lv2" onclick="selectNewUserLevel('lv2')">
+          <div style="font-weight:800;font-size:13px;">Lv.2 중급</div>
+          <div style="font-size:10.5px;color:var(--muted);">초등 고학년 추천</div>
+        </div>
+        <div class="new-lv-opt" data-lv="lv3" onclick="selectNewUserLevel('lv3')">
+          <div style="font-weight:800;font-size:13px;">Lv.3 원서형</div>
+          <div style="font-size:10.5px;color:var(--muted);">청소년·성인 추천</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:14px;">
+      <label style="font-weight:700;font-size:12.5px;display:block;margin-bottom:4px;">3. 나만의 숫자 4자리 비밀번호 (PIN)</label>
+      <input id="newUserPinInput" type="text" inputmode="numeric" maxlength="4" class="input-field" placeholder="예: 1234" />
+    </div>
+
+    <p id="addUserErrorMsg" style="color:var(--danger);font-size:12px;font-weight:700;margin:0 0 10px;"></p>
+
+    <div style="display:flex;justify-content:flex-end;gap:8px;">
+      <button class="btn" type="button" onclick="closeAddUserModal()">취소</button>
+      <button id="saveNewUserBtn" class="btn btn-primary" type="button" onclick="submitNewUser()">✅ 등록하고 시작하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 설정 모달 -->
 <div id="settingsModal" class="modal-backdrop">
   <div class="modal-box">
     <h3 style="margin-top:0;">⚙️ 앱 및 원어민 AI 음성 설정</h3>
@@ -833,6 +943,7 @@
   </div>
 </div>
 
+<!-- 관리자 검수 모달 -->
 <div id="reviewModal" class="modal-backdrop">
   <div class="modal-box wide">
     <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:14px;">
@@ -841,7 +952,7 @@
     </div>
 
     <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px;margin-bottom:16px;">
-      <div style="font-weight:800;font-size:13.5px;color:#92400e;margin-bottom:8px;">🎟️ 아이들 쿠폰 발급 및 사용 확인</div>
+      <div style="font-weight:800;font-size:13.5px;color:#92400e;margin-bottom:8px;">🎟️ 쿠폰 발급 및 사용 확인</div>
       <div id="adminCouponArea" style="font-size:12.5px;">불러오는 중...</div>
     </div>
 
@@ -856,9 +967,9 @@
 const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycby7pqe1UeemP6U6QNUacfO65hF-7g93Eh9aj1N-Rjis1WECHgAgYGQF3aWiB4Ocm9Ye6A/exec";
 
 const DEFAULT_USERS = [
-  { id: 'seoa', name: '서아', pin: '1111', defaultLevel: 'lv1' },
-  { id: 'seoyul', name: '서율', pin: '2222', defaultLevel: 'lv2' },
-  { id: 'mom', name: '엄마', pin: '0000', defaultLevel: 'lv3' }
+  { id: 'seoa', name: '서아', pin: '3333', defaultLevel: 'lv1' },
+  { id: 'seoyul', name: '서율', pin: '6666', defaultLevel: 'lv2' },
+  { id: 'mom', name: '엄마', pin: '9999', defaultLevel: 'lv3' }
 ];
 
 const LEVELS = [
@@ -866,6 +977,12 @@ const LEVELS = [
   { id: 'lv2', title: 'Lv.2 중급', desc: '의미끊기 스토리 독해' },
   { id: 'lv3', title: 'Lv.3 원서형', desc: 'A2~B1 원서 호흡 독해' }
 ];
+
+const LEVEL_SHORT_LABEL = {
+  lv1: 'Lv.1 기초',
+  lv2: 'Lv.2 중급',
+  lv3: 'Lv.3 원서형'
+};
 
 const CHARACTER_NAMES = [
   'Conan', 'Ran', 'Kogoro', 'Ai', 'Agasa', 'Sonoko', 'Heiji', 'Kaito', 'Megure',
@@ -889,6 +1006,7 @@ const NO_BREAK_AFTER_WORDS = new Set([
 let usersList = [...DEFAULT_USERS];
 let currentUser = localStorage.getItem('logged_in_user') || '';
 let selectedLoginUser = 'seoa';
+let newUserLevel = 'lv1';
 let currentLevel = 'lv1';
 
 let stories = [];
@@ -953,6 +1071,9 @@ async function loadData() {
     if (data.status === 'ok') {
       if (Array.isArray(data.users) && data.users.length > 0) {
         usersList = data.users;
+        if (!usersList.some(u => u.id === selectedLoginUser)) {
+          selectedLoginUser = usersList[0].id;
+        }
       }
       stories = data.stories || [];
       rewardsList = data.rewards || [];
@@ -972,13 +1093,18 @@ async function loadData() {
   }
 }
 
-/* ==================== 로그인 / 로그아웃 로직 ==================== */
+/* ==================== 로그인 & 새 사용자 등록 로직 ==================== */
 function renderLoginChoices() {
   const grid = document.getElementById('loginUserGrid');
   if (!grid) return;
+
+  // 4명일 때는 2x2 배치, 그 외에는 3열 깔끔 배치
+  grid.classList.toggle('cols-2', usersList.length === 4);
+
   grid.innerHTML = usersList.map(u => `
     <button type="button" class="login-user-btn ${u.id === selectedLoginUser ? 'selected' : ''}" onclick="chooseLoginUser('${u.id}')">
-      ${u.name}
+      <span>${u.name}</span>
+      <span class="u-lv-tag">${LEVEL_SHORT_LABEL[u.defaultLevel] || 'Lv.1 기초'}</span>
     </button>
   `).join('');
 }
@@ -1017,6 +1143,90 @@ function submitLogin() {
   document.getElementById('speedBtn').textContent = `속도 ${speechRate}x`;
   resetSessionTrackers();
   updateAuthView();
+}
+
+function openAddUserModal() {
+  document.getElementById('newUserNameInput').value = '';
+  document.getElementById('newUserPinInput').value = '';
+  document.getElementById('addUserErrorMsg').textContent = '';
+  selectNewUserLevel('lv1');
+  document.getElementById('addUserModal').style.display = 'block';
+  setTimeout(() => document.getElementById('newUserNameInput').focus(), 50);
+}
+
+function closeAddUserModal() {
+  document.getElementById('addUserModal').style.display = 'none';
+}
+
+function selectNewUserLevel(lv) {
+  newUserLevel = lv;
+  document.querySelectorAll('#newUserLevelGrid .new-lv-opt').forEach(el => {
+    el.classList.toggle('selected', el.dataset.lv === lv);
+  });
+}
+
+async function submitNewUser() {
+  const nameVal = document.getElementById('newUserNameInput').value.trim();
+  const pinVal = document.getElementById('newUserPinInput').value.trim();
+  const errEl = document.getElementById('addUserErrorMsg');
+
+  if (!nameVal) {
+    errEl.textContent = '이름을 입력해 주세요.';
+    return;
+  }
+  if (usersList.some(u => u.name === nameVal)) {
+    errEl.textContent = '이미 등록된 이름입니다. 다른 이름(예: 민지2)을 입력해 주세요.';
+    return;
+  }
+  if (!/^\d{4}$/.test(pinVal)) {
+    errEl.textContent = '비밀번호는 숫자 4자리로 입력해 주세요. (예: 1234)';
+    return;
+  }
+
+  const btn = document.getElementById('saveNewUserBtn');
+  btn.disabled = true;
+  btn.textContent = '저장 중...';
+
+  const newUserObj = {
+    id: 'u_' + Date.now(),
+    name: nameVal,
+    pin: pinVal,
+    defaultLevel: newUserLevel
+  };
+
+  const gasUrl = getGasUrl();
+  if (gasUrl) {
+    try {
+      await fetch(gasUrl, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'add_user',
+          id: newUserObj.id,
+          name: newUserObj.name,
+          pin: newUserObj.pin,
+          defaultLevel: newUserObj.defaultLevel
+        })
+      });
+    } catch (e) {
+      console.error('사용자 시트 저장 오류:', e);
+    }
+  }
+
+  usersList.push(newUserObj);
+  selectedLoginUser = newUserObj.id;
+  currentUser = newUserObj.id;
+  localStorage.setItem('logged_in_user', currentUser);
+  currentLevel = newUserObj.defaultLevel;
+  speechRate = currentLevel === 'lv1' ? 0.85 : 1.0;
+  document.getElementById('speedBtn').textContent = `속도 ${speechRate}x`;
+
+  btn.disabled = false;
+  btn.textContent = '✅ 등록하고 시작하기';
+  closeAddUserModal();
+  resetSessionTrackers();
+  renderLoginChoices();
+  updateAuthView();
+  alert(`🎉 환영합니다, ${newUserObj.name} 님!\n다음에 로그인할 때 비밀번호 [${newUserObj.pin}]을 입력해 주세요.`);
 }
 
 function logoutUser() {
