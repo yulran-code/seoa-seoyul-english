@@ -352,39 +352,25 @@
       line-height: 1.65;
     }
 
-    /* 회차 선택 바 */
+    /* 단일 드롭다운 회차 선택 바 */
     .episode-nav-wrap {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
       margin-bottom: 12px;
-      flex-wrap: wrap;
     }
-    .episode-chips { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
-    .ep-chip {
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 6px 11px;
-      font-size: 12px;
-      cursor: pointer;
-      text-align: left;
-      transition: all 0.15s;
-    }
-    .ep-chip.active { background: #0f172a; color: #fff; border-color: #0f172a; }
-    .ep-chip .ep-date { font-size: 10.5px; opacity: 0.75; display: block; }
-    .ep-chip .ep-title { font-weight: 700; }
     .ep-select {
-      padding: 8px 10px;
-      border-radius: 10px;
-      border: 1px solid #cbd5e1;
-      background: #fff;
-      font-size: 12.5px;
-      font-weight: 600;
-      color: var(--text);
+      width: 100%;
+      padding: 11px 14px;
+      border-radius: 12px;
+      border: 1.5px solid #cbd5e1;
+      background: #ffffff;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #0f172a;
       cursor: pointer;
-      max-width: 240px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+    .ep-select:focus {
+      outline: none;
+      border-color: var(--primary);
     }
 
     /* 메인 카드 */
@@ -433,6 +419,18 @@
     @keyframes pulse {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.65; }
+    }
+
+    .audio-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: #e0e7ff;
+      color: #3730a3;
+      margin-left: 5px;
+      vertical-align: middle;
     }
 
     .legend-bar {
@@ -827,7 +825,7 @@
             <div class="story-meta" id="storyMeta"></div>
           </div>
           <div class="controls">
-            <button class="btn btn-primary" onclick="playAllSentences()">🔊 전체 듣기</button>
+            <button class="btn btn-primary" id="playAllBtn" onclick="playAllSentences()">🔊 전체 듣기</button>
             <button class="btn" onclick="stopSpeech()">⏹ 정지</button>
             <button class="btn" onclick="cycleSpeed()" id="speedBtn">속도 1.0x</button>
             <button class="btn" onclick="toggleAllKo()" id="allKoBtn">🇰🇷 전체 해석 보기</button>
@@ -918,8 +916,8 @@
 
 <div id="wordToast" class="word-toast hidden"></div>
 
-<!-- 백그라운드 재생 오디오 세션 유지용 무음 오디오 -->
-<audio id="bgKeepAliveAudio" loop preload="auto" playsinline></audio>
+<!-- Gemini AI 성우 WAV/MP3 메인 플레이어 (백그라운드 및 문장 구간 재생용) -->
+<audio id="cloudMp3Player" preload="auto" playsinline></audio>
 
 <!-- 새 사용자 등록 모달 -->
 <div id="addUserModal" class="modal-backdrop">
@@ -971,12 +969,11 @@
     <p style="font-size:12.5px;color:var(--muted);margin-bottom:6px;">1. 구글 시트 웹앱 주소(<code>.../exec</code>)</p>
     <input id="gasUrlInput" class="input-field" placeholder="https://script.google.com/macros/s/.../exec" />
 
-    <p style="font-size:12.5px;color:var(--muted);margin:14px 0 6px;">2. 원어민 음성 선택 (음질 찢어짐 방지: 기기 설정 기본 음성 권장)</p>
+    <p style="font-size:12.5px;color:var(--muted);margin:14px 0 6px;">2. 단어/청크 보조 읽기용 기기 음성 선택 (본문 전체·문장 듣기는 AI 성우 오디오 자동 사용)</p>
     <div style="display:flex;gap:6px;">
       <select id="voiceSelect" class="input-field" style="flex:1;"></select>
       <button class="btn" type="button" onclick="previewSelectedVoice()">🔊 미리듣기</button>
     </div>
-    <p style="font-size:11.5px;color:var(--muted);margin:6px 0 0;">💡 <strong>기기 설정 기본 음성</strong>을 선택하면 스마트폰/태블릿의 <code>설정 → 글자 읽어주기</code>에서 고른 고음질 샘플 음성 그대로 재생됩니다.</p>
 
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
       <button class="btn" onclick="closeSettings()">취소</button>
@@ -1045,9 +1042,6 @@ const NO_BREAK_AFTER_WORDS = new Set([
   'to', 'very', 'so', 'too', 'big', 'blue', 'thin', 'old', 'new', 'little', 'small', 'dark', 'empty', 'famous'
 ]);
 
-// 1초짜리 무음 WAV 데이터 URI (모바일 백그라운드 오디오 세션 유지용)
-const SILENT_WAV_DATA_URI = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
-
 let usersList = [...DEFAULT_USERS];
 let currentUser = localStorage.getItem('logged_in_user') || '';
 let selectedLoginUser = 'seoa';
@@ -1066,9 +1060,13 @@ let showAllVocabMean = false;
 let showAllPhraseKo = false;
 let speechRate = 1.0;
 let stepPlayCancel = false;
-let isBackgroundPlayingAll = false;
-let bgWatchdogTimer = null;
 const isReviewMode = new URLSearchParams(window.location.search).get('mode') === 'review';
+
+// AI 성우 오디오 캐시 및 구간 제어 상태
+const audioBlobCache = {}; // { [fileId]: blobUrl }
+let audioMode = 'none';    // 'none' | 'all' | 'single'
+let audioTimings = [];     // [ [startSec, endSec], ... ]
+let audioSingleEnd = 0;
 
 let activeRecorder = null;
 let activeRecTarget = null;
@@ -1091,10 +1089,10 @@ function getTodayKstStr() {
 }
 
 function getFilteredStories() {
-  if (activeCategory === 'private') {
-    return allStories.filter(s => s.owner === currentUser);
-  }
-  return allStories.filter(s => !s.owner || s.owner === 'public');
+  const list = activeCategory === 'private'
+    ? allStories.filter(s => s.owner === currentUser)
+    : allStories.filter(s => !s.owner || s.owner === 'public');
+  return [...list].sort((a, b) => b.date.localeCompare(a.date));
 }
 
 function getCurrentStory() {
@@ -1104,11 +1102,17 @@ function getCurrentStory() {
   return list[currentStoryIdx];
 }
 
+function notifyToast(htmlMsg, durationMs = 3800) {
+  const toast = document.getElementById('wordToast');
+  if (!toast) return;
+  toast.innerHTML = htmlMsg;
+  toast.classList.remove('hidden');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => toast.classList.add('hidden'), durationMs);
+}
+
 window.addEventListener('DOMContentLoaded', async () => {
-  const bgAudio = document.getElementById('bgKeepAliveAudio');
-  if (bgAudio) {
-    bgAudio.src = SILENT_WAV_DATA_URI;
-  }
+  initCloudMp3PlayerEvents();
 
   if (isReviewMode) {
     document.getElementById('reviewTopBar').classList.remove('hidden');
@@ -1135,10 +1139,10 @@ async function loadData() {
     const params = new URLSearchParams();
     if (isReviewMode) params.set('mode', 'review');
     if (currentUser) params.set('user', currentUser);
-    const qs = params.toString();
-    const fetchUrl = qs ? `${gasUrl}?${qs}` : gasUrl;
+    params.set('_t', String(Date.now())); // 캐시 방지
+    const fetchUrl = `${gasUrl}?${params.toString()}`;
 
-    const res = await fetch(fetchUrl);
+    const res = await fetch(fetchUrl, { cache: 'no-store' });
     const data = await res.json();
     if (data.status === 'ok') {
       if (Array.isArray(data.users) && data.users.length > 0) {
@@ -1619,7 +1623,7 @@ async function redeemReward(rewardId) {
   alert('🎉 쿠폰 교환이 완료되었습니다! 아래 [내가 교환한 쿠폰함]을 엄마에게 보여주세요.');
 }
 
-/* ==================== 레벨 & 에피소드 탐색 ==================== */
+/* ==================== 레벨 & 단일 드롭다운 회차 탐색 ==================== */
 function renderLevelTabs() {
   const wrap = document.getElementById('levelTabs');
   wrap.innerHTML = LEVELS.map(lv => `
@@ -1637,6 +1641,7 @@ function selectLevel(lvId) {
   speechRate = lvId === 'lv1' ? 0.85 : 1.0;
   document.getElementById('speedBtn').textContent = `속도 ${speechRate}x`;
   renderLevelTabs();
+  renderEpisodeBar();
   renderStory();
 }
 
@@ -1648,32 +1653,19 @@ function renderEpisodeBar() {
     return;
   }
 
-  const recentStories = stories.slice(0, 3);
-  const chipsHtml = recentStories.map((st, idx) => {
-    const pKey = st.progressKey || st.date;
-    const done = isStoryCompleted(currentUser, pKey);
-    const sched = st.isScheduled ? ' 🔒' : '';
-    const dayLabel = idx === 0 ? '최신 · ' : '';
-    return `
-      <button class="ep-chip ${idx === currentStoryIdx ? 'active' : ''}" onclick="selectEpisode(${idx})">
-        <span class="ep-date">${dayLabel}${st.date}${sched} ${done ? '✅' : ''}</span>
-        <span class="ep-title">${st.title}</span>
-      </button>
-    `;
-  }).join('');
-
-  const dropdownHtml = stories.length > 1 ? `
-    <select class="ep-select" onchange="selectEpisode(Number(this.value))" aria-label="전체 회차 선택">
+  bar.innerHTML = `
+    <select class="ep-select" onchange="selectEpisode(Number(this.value))" aria-label="학습 회차 선택">
       ${stories.map((st, idx) => {
         const pKey = st.progressKey || st.date;
-        const done = isStoryCompleted(currentUser, pKey) ? ' [완료]' : '';
-        const sched = st.isScheduled ? ' [예약]' : '';
-        return `<option value="${idx}" ${idx === currentStoryIdx ? 'selected' : ''}>📅 ${st.date} · ${st.title}${sched}${done}</option>`;
+        const done = isStoryCompleted(currentUser, pKey) ? ' ✅' : '';
+        const sched = st.isScheduled ? ' 🔒[예약]' : '';
+        const lvData = st.levels[currentLevel] || st.levels.lv3;
+        const hasAudio = (lvData && lvData.audio && lvData.audio.fileId) ? ' 🎧' : '';
+        const prefix = idx === 0 ? '📌 오늘의 학습 · ' : '📅 ';
+        return `<option value="${idx}" ${idx === currentStoryIdx ? 'selected' : ''}>${prefix}${st.date} · ${st.title}${hasAudio}${sched}${done}</option>`;
       }).join('')}
     </select>
-  ` : '';
-
-  bar.innerHTML = `<div class="episode-chips">${chipsHtml}</div>${dropdownHtml}`;
+  `;
 }
 
 function selectEpisode(idx) {
@@ -1809,11 +1801,7 @@ function speakWordOnly(word, sentIdx, wIdx) {
 function showWordPopup(word, meaning) {
   stopSpeech();
   window.speechSynthesis.speak(createUtterance(word, Math.min(speechRate, 0.8)));
-  const toast = document.getElementById('wordToast');
-  toast.innerHTML = `<strong>🔊 ${word}</strong> : ${meaning}`;
-  toast.classList.remove('hidden');
-  clearTimeout(window._toastTimer);
-  window._toastTimer = setTimeout(() => toast.classList.add('hidden'), 3200);
+  notifyToast(`<strong>🔊 ${word}</strong> : ${meaning}`, 3200);
 }
 
 function renderStory() {
@@ -1832,10 +1820,12 @@ function renderStory() {
   const lvObj = LEVELS.find(l => l.id === currentLevel);
   const isChildMode = currentLevel === 'lv1' || currentLevel === 'lv2';
   const lvData = story.levels[currentLevel] || story.levels.lv3;
+  const hasAiAudio = !!(lvData && lvData.audio && lvData.audio.fileId);
+  const voiceTag = hasAiAudio && lvData.audio.voice ? ` (${lvData.audio.voice})` : '';
 
-  document.getElementById('storyTitle').textContent = story.title;
+  document.getElementById('storyTitle').innerHTML = `${story.title} ${hasAiAudio ? `<span class="audio-badge">🎧 AI 성우${voiceTag}</span>` : ''}`;
   document.getElementById('storyMeta').textContent = activeCategory === 'private'
-    ? `${story.date} · 🔒 나만의 A2~B1 묵상 아티클 (백그라운드 연속 재생 지원)`
+    ? `${story.date} · 🔒 나만의 A2~B1 묵상 아티클`
     : `${story.date} · ${lvObj.title} (${lvObj.desc})`;
 
   document.getElementById('legendBar').innerHTML = isChildMode
@@ -1847,7 +1837,7 @@ function renderStory() {
       ${isReviewMode ? '<span class="legend-item"><span class="review-chunk-slash">/</span> 관리자 검수용 끊어읽기</span>' : ''}
     `
     : `
-      <span class="legend-item">🎧 <strong>전체 듣기</strong>: 화면을 끄거나 다른 앱을 열어도 백그라운드 연속 재생</span>
+      <span class="legend-item">🎧 <strong>전체 듣기</strong>: AI 성우 오디오 백그라운드 연속 재생</span>
       <span class="legend-item">🎤 <strong>문장 녹음</strong>: 전 문장 녹음 시 읽기 자동 완료</span>
       <span class="legend-item"><span class="vocab-highlight">핵심단어</span> 터치하면 뜻 & 발음</span>
       ${isReviewMode ? '<span class="legend-item"><span class="review-chunk-slash">/</span> 관리자 검수용 끊어읽기</span>' : ''}
@@ -1963,7 +1953,210 @@ function toggleAllPhraseKo() {
   });
 }
 
-/* ==================== 원음 음질 보존 & 백그라운드 연속 재생 ==================== */
+/* ==================== AI 성우 WAV/MP3 로더 & 타임스탬프 플레이어 ==================== */
+async function getAiAudioBlobUrl(fileId) {
+  if (audioBlobCache[fileId]) return audioBlobCache[fileId];
+
+  const gasUrl = getGasUrl();
+  if (!gasUrl) return null;
+
+  const btn = document.getElementById('playAllBtn');
+  const origText = btn ? btn.textContent : '🔊 전체 듣기';
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ AI 음성 로딩 중...';
+  }
+
+  try {
+    const res = await fetch(`${gasUrl}?action=get_audio&fileId=${encodeURIComponent(fileId)}&_t=${Date.now()}`, {
+      cache: 'no-store'
+    });
+    const data = await res.json();
+
+    if (data.status === 'ok' && data.base64) {
+      const byteChars = atob(data.base64);
+      const byteNumbers = new Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) {
+        byteNumbers[i] = byteChars.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: data.mimeType || 'audio/wav' });
+      const blobUrl = URL.createObjectURL(blob);
+      audioBlobCache[fileId] = blobUrl;
+      return blobUrl;
+    } else if (data.stories && !data.base64) {
+      notifyToast('⚠️ Apps Script에서 <strong>Code.gs 새 버전 배포</strong>가 필요합니다. (현재 기기 음성으로 대체 재생)', 5500);
+    } else if (data.status === 'error') {
+      notifyToast(`⚠️ 오디오 불러오기 오류: ${data.message}`, 4500);
+    }
+  } catch (e) {
+    console.error('AI 오디오 로드 오류:', e);
+    notifyToast('⚠️ 네트워크 오류로 AI 음성을 불러오지 못해 기기 음성으로 재생합니다.', 4000);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = origText;
+    }
+  }
+  return null;
+}
+
+function initCloudMp3PlayerEvents() {
+  const player = document.getElementById('cloudMp3Player');
+  if (!player) return;
+
+  player.ontimeupdate = () => {
+    const curr = player.currentTime;
+
+    if (audioMode === 'single') {
+      if (curr >= audioSingleEnd) {
+        player.pause();
+        audioMode = 'none';
+        document.querySelectorAll('.sentence-card').forEach(c => c.classList.remove('speaking'));
+      }
+      return;
+    }
+
+    if (audioMode === 'all' && Array.isArray(audioTimings)) {
+      let activeIdx = -1;
+      for (let i = 0; i < audioTimings.length; i++) {
+        const [st, en] = audioTimings[i];
+        if (curr >= st - 0.08 && curr < en) {
+          activeIdx = i;
+          break;
+        }
+      }
+      if (activeIdx !== -1) {
+        document.querySelectorAll('.sentence-card').forEach((c, idx) => {
+          c.classList.toggle('speaking', idx === activeIdx);
+        });
+      }
+    }
+  };
+
+  player.onended = () => {
+    audioMode = 'none';
+    document.querySelectorAll('.sentence-card').forEach(c => c.classList.remove('speaking'));
+    if ('mediaSession' in navigator) {
+      try { navigator.mediaSession.playbackState = 'none'; } catch (e) {}
+    }
+  };
+}
+
+function setupMediaSessionForAudio(titleText, voiceName) {
+  if (!('mediaSession' in navigator)) return;
+  const player = document.getElementById('cloudMp3Player');
+  try {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: titleText || '데일리 영어 리딩 클럽',
+      artist: voiceName ? `AI 성우 (${voiceName})` : '데일리 영어 리딩 클럽',
+      album: activeCategory === 'private' ? '나만의 묵상 아티클' : '가족 영어 리딩'
+    });
+    navigator.mediaSession.playbackState = 'playing';
+    navigator.mediaSession.setActionHandler('play', () => {
+      player.play();
+      navigator.mediaSession.playbackState = 'playing';
+    });
+    navigator.mediaSession.setActionHandler('pause', () => {
+      player.pause();
+      navigator.mediaSession.playbackState = 'paused';
+    });
+    navigator.mediaSession.setActionHandler('stop', () => {
+      stopSpeech();
+    });
+  } catch (e) {}
+}
+
+async function playAllSentences() {
+  stopSpeech();
+  stepPlayCancel = false;
+
+  const story = getCurrentStory();
+  if (!story) return;
+  const lvData = story.levels[currentLevel] || story.levels.lv3;
+  if (!lvData) return;
+
+  // Gemini AI 성우 WAV/MP3가 연결되어 있으면 실제 오디오 플레이어로 백그라운드 연속 재생
+  if (lvData.audio && lvData.audio.fileId) {
+    const blobUrl = await getAiAudioBlobUrl(lvData.audio.fileId);
+    if (blobUrl) {
+      const player = document.getElementById('cloudMp3Player');
+      audioMode = 'all';
+      audioTimings = lvData.audio.timings || [];
+      if (player.src !== blobUrl) {
+        player.src = blobUrl;
+        player.load();
+      }
+      player.currentTime = 0;
+      player.playbackRate = speechRate;
+      setupMediaSessionForAudio(story.title, lvData.audio.voice);
+      try {
+        await player.play();
+        return;
+      } catch (err) {
+        console.error('오디오 재생 실패:', err);
+      }
+    }
+  }
+
+  // 오디오가 아직 생성 전인 회차는 기존 브라우저 TTS 폴백 재생
+  const list = lvData.sentences;
+  let idx = 0;
+  function next() {
+    if (stepPlayCancel || idx >= list.length) {
+      document.querySelectorAll('.sentence-card').forEach(c => c.classList.remove('speaking'));
+      return;
+    }
+    document.querySelectorAll('.sentence-card').forEach(c => c.classList.remove('speaking'));
+    const cardEl = document.getElementById(`sent-card-${idx}`);
+    if (cardEl) cardEl.classList.add('speaking');
+
+    const u = createUtterance(list[idx].en);
+    u.onend = () => { idx++; next(); };
+    u.onerror = () => { idx++; next(); };
+    window.speechSynthesis.speak(u);
+  }
+  next();
+}
+
+async function speakSingle(idx) {
+  stopSpeech();
+  const story = getCurrentStory();
+  if (!story) return;
+  const lvData = story.levels[currentLevel] || story.levels.lv3;
+  const s = lvData.sentences[idx];
+  const card = document.getElementById(`sent-card-${idx}`);
+  if (card) card.classList.add('speaking');
+
+  // Gemini AI 성우 오디오와 문장 타임스탬프가 있으면 해당 문장 구간만 정밀 재생
+  if (lvData.audio && lvData.audio.fileId && Array.isArray(lvData.audio.timings) && lvData.audio.timings[idx]) {
+    const blobUrl = await getAiAudioBlobUrl(lvData.audio.fileId);
+    if (blobUrl) {
+      const player = document.getElementById('cloudMp3Player');
+      const [startSec, endSec] = lvData.audio.timings[idx];
+      audioMode = 'single';
+      audioSingleEnd = endSec;
+      if (player.src !== blobUrl) {
+        player.src = blobUrl;
+        player.load();
+      }
+      player.currentTime = Math.max(0, startSec - 0.03);
+      player.playbackRate = speechRate;
+      try {
+        await player.play();
+        return;
+      } catch (err) {
+        console.error('구간 재생 실패:', err);
+      }
+    }
+  }
+
+  const u = createUtterance(s.en);
+  u.onend = () => { if (card) card.classList.remove('speaking'); };
+  window.speechSynthesis.speak(u);
+}
+
+/* ==================== 단어 클릭 & 의미 끊기 보조 음성 ==================== */
 function normalizePronunciation(text) {
   return text
     .replace(/\bBisil('s)?\b/gi, (_, s) => `Beeseel${s || ''}`)
@@ -1989,7 +2182,6 @@ function getEnglishVoicesList() {
 
 function getSelectedVoiceObject() {
   const savedVoiceName = localStorage.getItem('selected_voice_name') || '';
-  // 빈 문자열('')이면 안드로이드/OS 설정의 기본 고음질 샘플 음성 그대로 사용
   if (!savedVoiceName) return null;
   const enVoices = getEnglishVoicesList();
   return enVoices.find(v => v.name === savedVoiceName) || null;
@@ -2001,7 +2193,7 @@ function populateVoiceDropdown() {
   const enVoices = getEnglishVoicesList();
   const savedName = localStorage.getItem('selected_voice_name') || '';
   const optionsHtml = [
-    `<option value="" ${savedName === '' ? 'selected' : ''}>📱 기기 설정 기본 음성 (안드로이드 설정 샘플 음질 그대로 · 추천)</option>`
+    `<option value="" ${savedName === '' ? 'selected' : ''}>📱 기기 설정 기본 음성 (추천)</option>`
   ];
   enVoices.forEach(v => {
     const cleanLabel = v.name.replace('Microsoft ', '').replace('Online (Natural) - ', '✨ ');
@@ -2015,11 +2207,11 @@ function previewSelectedVoice() {
   const sel = document.getElementById('voiceSelect');
   const voices = getEnglishVoicesList();
   const chosen = sel.value ? voices.find(v => v.name === sel.value) : null;
-  const u = new SpeechSynthesisUtterance("Every human heart is searching for a deep sense of worth, security, and approval.");
+  const u = new SpeechSynthesisUtterance("Hello! Let's read today's story together.");
   if (chosen) u.voice = chosen;
   u.lang = 'en-US';
   u.rate = speechRate;
-  u.pitch = 1.0; // 1.0 고정으로 음질 찢어짐(피치 변조) 완전 방지
+  u.pitch = 1.0;
   window.speechSynthesis.speak(u);
 }
 
@@ -2031,78 +2223,22 @@ function createUtterance(text, customRate) {
   const spokenText = normalizePronunciation(text);
   const u = new SpeechSynthesisUtterance(spokenText);
   const chosen = getSelectedVoiceObject();
-  if (chosen) {
-    u.voice = chosen;
-  }
+  if (chosen) u.voice = chosen;
   u.lang = 'en-US';
   u.rate = customRate || speechRate;
-  u.pitch = 1.0; // 1.0 고정 (리샘플링 찢어짐 현상 제거)
+  u.pitch = 1.0;
   return u;
-}
-
-function startBackgroundAudioSession(titleText) {
-  const bgAudio = document.getElementById('bgKeepAliveAudio');
-  if (bgAudio) {
-    bgAudio.play().catch(() => {});
-  }
-  if ('mediaSession' in navigator) {
-    try {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: titleText || '데일리 영어 리딩 클럽',
-        artist: '데일리 영어 리딩 클럽',
-        album: activeCategory === 'private' ? '나만의 묵상 아티클' : '가족 영어 리딩'
-      });
-      navigator.mediaSession.playbackState = 'playing';
-      navigator.mediaSession.setActionHandler('play', () => {
-        if (window.speechSynthesis.paused) {
-          window.speechSynthesis.resume();
-          if (bgAudio) bgAudio.play().catch(() => {});
-          navigator.mediaSession.playbackState = 'playing';
-        } else if (!isBackgroundPlayingAll) {
-          playAllSentences();
-        }
-      });
-      navigator.mediaSession.setActionHandler('pause', () => {
-        window.speechSynthesis.pause();
-        if (bgAudio) bgAudio.pause();
-        navigator.mediaSession.playbackState = 'paused';
-      });
-      navigator.mediaSession.setActionHandler('stop', () => {
-        stopSpeech();
-      });
-    } catch (e) {}
-  }
-}
-
-function stopBackgroundAudioSession() {
-  isBackgroundPlayingAll = false;
-  clearInterval(bgWatchdogTimer);
-  bgWatchdogTimer = null;
-
-  const bgAudio = document.getElementById('bgKeepAliveAudio');
-  if (bgAudio) {
-    bgAudio.pause();
-    bgAudio.currentTime = 0;
-  }
-  if ('mediaSession' in navigator) {
-    try {
-      navigator.mediaSession.playbackState = 'none';
-    } catch (e) {}
-  }
 }
 
 function speakChunkSafely(text, rate, isCancelledFn) {
   return new Promise(resolve => {
     if (isCancelledFn()) return resolve();
-
     window.speechSynthesis.cancel();
 
     setTimeout(() => {
       if (isCancelledFn()) return resolve();
-
       const u = createUtterance(text, rate);
       let settled = false;
-
       const estimatedDuration = Math.max(650, text.length * 95);
       const startedAt = Date.now();
 
@@ -2118,7 +2254,6 @@ function speakChunkSafely(text, rate, isCancelledFn) {
       const hardTimer = setTimeout(finish, estimatedDuration + 2500);
       u.onend = finish;
       u.onerror = finish;
-
       window.speechSynthesis.speak(u);
     }, 60);
   });
@@ -2226,7 +2361,7 @@ function renderSpeakingList(speakingArr, isChildMode) {
         </div>
         <div class="speak-btns">
           <button class="btn" onclick="speakText('${sp.en.replace(/'/g, "\\'")}', ${isChildMode ? 0.72 : 'null'})">
-            ${isChildMode ? '🐢 천천히 듣기' : '🔊 원어민 듣기'}
+            ${isChildMode ? '🐢 천천히 듣기' : '🔊 듣기'}
           </button>
           <button class="btn btn-rec ${isRec ? 'recording' : ''}" onclick="toggleRecord('speak', ${idx})">
             ${isRec ? '⏹ 녹음 중지' : (hasAudio ? '✅ 다시 녹음' : '🎤 녹음하기')}
@@ -2271,7 +2406,7 @@ async function toggleRecord(type, idx) {
       if (durationMs < 1200) {
         alert('녹음 시간이 너무 짧아요! 문장을 끝까지 소리 내어 읽은 뒤 중지를 눌러주세요. (최소 1.2초 이상)');
       } else {
-        const blob = new Blob([byteArray], { type: data.mimeType || 'audio/wav' });
+        const blob = new Blob(chunks, { type: 'audio/webm' });
         const url = URL.createObjectURL(blob);
         if (type === 'sent') {
           sentRecordUrls[idx] = url;
@@ -2455,68 +2590,18 @@ function speakText(text, customRate) {
   window.speechSynthesis.speak(createUtterance(text, customRate));
 }
 
-function speakSingle(idx) {
-  stopSpeech();
-  const story = getCurrentStory();
-  const lvData = story.levels[currentLevel] || story.levels.lv3;
-  const s = lvData.sentences[idx];
-  const card = document.getElementById(`sent-card-${idx}`);
-  card.classList.add('speaking');
-
-  const u = createUtterance(s.en);
-  u.onend = () => card.classList.remove('speaking');
-  window.speechSynthesis.speak(u);
-}
-
-function playAllSentences() {
-  stopSpeech();
-  stepPlayCancel = false;
-  isBackgroundPlayingAll = true;
-
-  const story = getCurrentStory();
-  if (!story) return;
-  const lvData = story.levels[currentLevel] || story.levels.lv3;
-  const list = lvData.sentences;
-  let idx = 0;
-
-  // 백그라운드 오디오 세션 & 잠금화면 컨트롤 활성화
-  startBackgroundAudioSession(story.title);
-
-  // 크롬/안드로이드 백그라운드에서 speechSynthesis가 일시 멈추는 현상 방지용 감시 타이머
-  bgWatchdogTimer = setInterval(() => {
-    if (!stepPlayCancel && isBackgroundPlayingAll && window.speechSynthesis.paused) {
-      window.speechSynthesis.resume();
-    }
-  }, 1500);
-
-  function next() {
-    if (stepPlayCancel || idx >= list.length) {
-      document.querySelectorAll('.sentence-card').forEach(c => c.classList.remove('speaking'));
-      stopBackgroundAudioSession();
-      return;
-    }
-    document.querySelectorAll('.sentence-card').forEach(c => c.classList.remove('speaking'));
-    const cardEl = document.getElementById(`sent-card-${idx}`);
-    if (cardEl) cardEl.classList.add('speaking');
-
-    const u = createUtterance(list[idx].en);
-    // setTimeout 없이 onend에서 즉시 다음 문장을 호출해 백그라운드 스로틀링 회피
-    u.onend = () => {
-      idx++;
-      next();
-    };
-    u.onerror = () => {
-      idx++;
-      next();
-    };
-    window.speechSynthesis.speak(u);
-  }
-  next();
-}
-
 function stopSpeech() {
   stepPlayCancel = true;
-  stopBackgroundAudioSession();
+  audioMode = 'none';
+
+  const player = document.getElementById('cloudMp3Player');
+  if (player && !player.paused) {
+    player.pause();
+  }
+  if ('mediaSession' in navigator) {
+    try { navigator.mediaSession.playbackState = 'none'; } catch (e) {}
+  }
+
   window.speechSynthesis.cancel();
   document.querySelectorAll('.sentence-card').forEach(c => c.classList.remove('speaking'));
   document.querySelectorAll('.word-token').forEach(el => el.classList.remove('active-word'));
@@ -2528,6 +2613,11 @@ function cycleSpeed() {
   const speeds = [1.0, 0.85, 0.7, 0.55];
   speechRate = speeds[(speeds.indexOf(speechRate) + 1) % speeds.length];
   document.getElementById('speedBtn').textContent = `속도 ${speechRate}x`;
+
+  const player = document.getElementById('cloudMp3Player');
+  if (player) {
+    player.playbackRate = speechRate;
+  }
 }
 
 /* ==================== 내 학습 현황표 & 내 포인트 대시보드 ==================== */
