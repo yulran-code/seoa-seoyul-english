@@ -2271,7 +2271,7 @@ async function toggleRecord(type, idx) {
       if (durationMs < 1200) {
         alert('녹음 시간이 너무 짧아요! 문장을 끝까지 소리 내어 읽은 뒤 중지를 눌러주세요. (최소 1.2초 이상)');
       } else {
-        const blob = new Blob(chunks, { type: 'audio/webm' });
+        const blob = new Blob([byteArray], { type: data.mimeType || 'audio/wav' });
         const url = URL.createObjectURL(blob);
         if (type === 'sent') {
           sentRecordUrls[idx] = url;
