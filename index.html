@@ -106,7 +106,7 @@
       font-weight: 700;
     }
 
-    /* 나만의 비공개 아티클 카테고리 전환 바 (엄마 전용) */
+    /* 나만의 비공개 아티클 카테고리 전환 바 */
     .category-switch-bar {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -812,7 +812,6 @@
 
     <!-- 1. 오늘의 학습 뷰 -->
     <div id="studyView">
-      <!-- 비공개 아티클이 있는 사용자(엄마)에게만 표시되는 카테고리 전환 바 -->
       <div id="categorySwitchBar" class="category-switch-bar hidden">
         <button type="button" id="catPublicBtn" class="cat-btn active" onclick="switchStoryCategory('public')">📚 가족 스토리 (코난·도라에몽·향꽃)</button>
         <button type="button" id="catPrivateBtn" class="cat-btn private-cat" onclick="switchStoryCategory('private')">✝️ 나만의 묵상 아티클 (팀 켈러)</button>
@@ -919,6 +918,9 @@
 
 <div id="wordToast" class="word-toast hidden"></div>
 
+<!-- 백그라운드 재생 오디오 세션 유지용 무음 오디오 -->
+<audio id="bgKeepAliveAudio" loop preload="auto" playsinline></audio>
+
 <!-- 새 사용자 등록 모달 -->
 <div id="addUserModal" class="modal-backdrop">
   <div class="modal-box" style="max-width:420px;">
@@ -965,15 +967,16 @@
 <!-- 설정 모달 -->
 <div id="settingsModal" class="modal-backdrop">
   <div class="modal-box">
-    <h3 style="margin-top:0;">⚙️ 앱 및 원어민 AI 음성 설정</h3>
+    <h3 style="margin-top:0;">⚙️ 앱 및 원어민 음성 설정</h3>
     <p style="font-size:12.5px;color:var(--muted);margin-bottom:6px;">1. 구글 시트 웹앱 주소(<code>.../exec</code>)</p>
     <input id="gasUrlInput" class="input-field" placeholder="https://script.google.com/macros/s/.../exec" />
 
-    <p style="font-size:12.5px;color:var(--muted);margin:14px 0 6px;">2. 원어민 AI 성우 선택 (Edge/브라우저 내장 고품질 음성)</p>
+    <p style="font-size:12.5px;color:var(--muted);margin:14px 0 6px;">2. 원어민 음성 선택 (음질 찢어짐 방지: 기기 설정 기본 음성 권장)</p>
     <div style="display:flex;gap:6px;">
       <select id="voiceSelect" class="input-field" style="flex:1;"></select>
       <button class="btn" type="button" onclick="previewSelectedVoice()">🔊 미리듣기</button>
     </div>
+    <p style="font-size:11.5px;color:var(--muted);margin:6px 0 0;">💡 <strong>기기 설정 기본 음성</strong>을 선택하면 스마트폰/태블릿의 <code>설정 → 글자 읽어주기</code>에서 고른 고음질 샘플 음성 그대로 재생됩니다.</p>
 
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
       <button class="btn" onclick="closeSettings()">취소</button>
@@ -1042,12 +1045,15 @@ const NO_BREAK_AFTER_WORDS = new Set([
   'to', 'very', 'so', 'too', 'big', 'blue', 'thin', 'old', 'new', 'little', 'small', 'dark', 'empty', 'famous'
 ]);
 
+// 1초짜리 무음 WAV 데이터 URI (모바일 백그라운드 오디오 세션 유지용)
+const SILENT_WAV_DATA_URI = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+
 let usersList = [...DEFAULT_USERS];
 let currentUser = localStorage.getItem('logged_in_user') || '';
 let selectedLoginUser = 'seoa';
 let newUserLevel = 'lv1';
 let currentLevel = 'lv1';
-let activeCategory = 'public'; // 'public' | 'private'
+let activeCategory = 'public';
 
 let allStories = [];
 let currentStoryIdx = 0;
@@ -1060,6 +1066,8 @@ let showAllVocabMean = false;
 let showAllPhraseKo = false;
 let speechRate = 1.0;
 let stepPlayCancel = false;
+let isBackgroundPlayingAll = false;
+let bgWatchdogTimer = null;
 const isReviewMode = new URLSearchParams(window.location.search).get('mode') === 'review';
 
 let activeRecorder = null;
@@ -1097,6 +1105,11 @@ function getCurrentStory() {
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
+  const bgAudio = document.getElementById('bgKeepAliveAudio');
+  if (bgAudio) {
+    bgAudio.src = SILENT_WAV_DATA_URI;
+  }
+
   if (isReviewMode) {
     document.getElementById('reviewTopBar').classList.remove('hidden');
     document.getElementById('exitReviewLink').href = window.location.pathname;
@@ -1203,7 +1216,6 @@ async function submitLogin() {
   document.getElementById('speedBtn').textContent = `속도 ${speechRate}x`;
   resetSessionTrackers();
 
-  // 로그인한 사용자 전용 비공개 아티클까지 서버에서 새로 불러오기
   await loadData();
 }
 
@@ -1314,7 +1326,6 @@ function updateAuthView() {
   document.getElementById('tabBoardBtn').classList.toggle('hidden', !isLoggedIn);
 
   if (isLoggedIn) {
-    // 현재 로그인한 사용자에게 비공개(owner === currentUser) 아티클이 존재할 때만 카테고리 전환 바 노출
     const hasPrivateStories = allStories.some(s => s.owner === currentUser);
     const catBar = document.getElementById('categorySwitchBar');
     if (catBar) {
@@ -1324,7 +1335,6 @@ function updateAuthView() {
       document.getElementById('catPrivateBtn').classList.toggle('active', activeCategory === 'private');
     }
 
-    // 비공개 팀 켈러 아티클 탭에서는 Lv.3(A2~B1) 단독 고정
     const lvTabsEl = document.getElementById('levelTabs');
     if (activeCategory === 'private') {
       currentLevel = 'lv3';
@@ -1397,7 +1407,6 @@ function calculateUserStats(userId) {
   const basePoints = totalCompletedCount * 10;
   const cumulativeBonusPoints = Math.floor(totalCompletedCount / 10) * 10;
 
-  // 같은 날짜에 일반 스토리와 비공개 묵상글을 모두 완료해도 연속 일수(Streak)는 하루 1회로 정확히 합산
   const onTimeBaseDateSet = new Set();
   let reviewCount = 0;
 
@@ -1826,7 +1835,7 @@ function renderStory() {
 
   document.getElementById('storyTitle').textContent = story.title;
   document.getElementById('storyMeta').textContent = activeCategory === 'private'
-    ? `${story.date} · 🔒 나만의 A2~B1 묵상 아티클`
+    ? `${story.date} · 🔒 나만의 A2~B1 묵상 아티클 (백그라운드 연속 재생 지원)`
     : `${story.date} · ${lvObj.title} (${lvObj.desc})`;
 
   document.getElementById('legendBar').innerHTML = isChildMode
@@ -1838,9 +1847,9 @@ function renderStory() {
       ${isReviewMode ? '<span class="legend-item"><span class="review-chunk-slash">/</span> 관리자 검수용 끊어읽기</span>' : ''}
     `
     : `
+      <span class="legend-item">🎧 <strong>전체 듣기</strong>: 화면을 끄거나 다른 앱을 열어도 백그라운드 연속 재생</span>
       <span class="legend-item">🎤 <strong>문장 녹음</strong>: 전 문장 녹음 시 읽기 자동 완료</span>
       <span class="legend-item"><span class="vocab-highlight">핵심단어</span> 터치하면 뜻 & 발음</span>
-      <span class="legend-item">🇰🇷 <strong>해석</strong>: 문장별 뜻 & 핵심 구문 노트 확인</span>
       ${isReviewMode ? '<span class="legend-item"><span class="review-chunk-slash">/</span> 관리자 검수용 끊어읽기</span>' : ''}
     `;
 
@@ -1954,7 +1963,7 @@ function toggleAllPhraseKo() {
   });
 }
 
-/* ==================== 발음 교정 & 순차 재생 ==================== */
+/* ==================== 원음 음질 보존 & 백그라운드 연속 재생 ==================== */
 function normalizePronunciation(text) {
   return text
     .replace(/\bBisil('s)?\b/gi, (_, s) => `Beeseel${s || ''}`)
@@ -1972,60 +1981,114 @@ function getEnglishVoicesList() {
     .sort((a, b) => {
       const score = v =>
         (v.lang === 'en-US' ? 10 : 0) +
-        (v.name.includes('Natural') || v.name.includes('Aria') || v.name.includes('Jenny') || v.name.includes('Ana') || v.name.includes('Guy') ? 20 : 0) +
+        (v.name.includes('Natural') || v.name.includes('Aria') || v.name.includes('Ava') || v.name.includes('Jenny') || v.name.includes('Ana') || v.name.includes('Guy') ? 20 : 0) +
         (v.name.includes('Google') ? 15 : 0);
       return score(b) - score(a);
     });
 }
 
-function getBestEnglishVoice() {
+function getSelectedVoiceObject() {
+  const savedVoiceName = localStorage.getItem('selected_voice_name') || '';
+  // 빈 문자열('')이면 안드로이드/OS 설정의 기본 고음질 샘플 음성 그대로 사용
+  if (!savedVoiceName) return null;
   const enVoices = getEnglishVoicesList();
-  if (!enVoices.length) return null;
-  const savedVoiceName = localStorage.getItem('selected_voice_name');
-  if (savedVoiceName) {
-    const found = enVoices.find(v => v.name === savedVoiceName);
-    if (found) return found;
-  }
-  return enVoices[0];
+  return enVoices.find(v => v.name === savedVoiceName) || null;
 }
 
 function populateVoiceDropdown() {
   const sel = document.getElementById('voiceSelect');
   if (!sel) return;
   const enVoices = getEnglishVoicesList();
-  const savedName = localStorage.getItem('selected_voice_name') || (enVoices[0] && enVoices[0].name) || '';
-  sel.innerHTML = enVoices.map(v => {
+  const savedName = localStorage.getItem('selected_voice_name') || '';
+  const optionsHtml = [
+    `<option value="" ${savedName === '' ? 'selected' : ''}>📱 기기 설정 기본 음성 (안드로이드 설정 샘플 음질 그대로 · 추천)</option>`
+  ];
+  enVoices.forEach(v => {
     const cleanLabel = v.name.replace('Microsoft ', '').replace('Online (Natural) - ', '✨ ');
-    return `<option value="${v.name}" ${v.name === savedName ? 'selected' : ''}>${cleanLabel} (${v.lang})</option>`;
-  }).join('');
+    optionsHtml.push(`<option value="${v.name}" ${v.name === savedName ? 'selected' : ''}>${cleanLabel} (${v.lang})</option>`);
+  });
+  sel.innerHTML = optionsHtml.join('');
 }
 
 function previewSelectedVoice() {
   stopSpeech();
   const sel = document.getElementById('voiceSelect');
   const voices = getEnglishVoicesList();
-  const chosen = voices.find(v => v.name === sel.value);
-  const u = new SpeechSynthesisUtterance("Hello! Beeseel and Eesul are reading today's story together.");
+  const chosen = sel.value ? voices.find(v => v.name === sel.value) : null;
+  const u = new SpeechSynthesisUtterance("Every human heart is searching for a deep sense of worth, security, and approval.");
   if (chosen) u.voice = chosen;
   u.lang = 'en-US';
   u.rate = speechRate;
+  u.pitch = 1.0; // 1.0 고정으로 음질 찢어짐(피치 변조) 완전 방지
   window.speechSynthesis.speak(u);
 }
 
 window.speechSynthesis.onvoiceschanged = () => {
-  getBestEnglishVoice();
   populateVoiceDropdown();
 };
 
 function createUtterance(text, customRate) {
   const spokenText = normalizePronunciation(text);
   const u = new SpeechSynthesisUtterance(spokenText);
-  const best = getBestEnglishVoice();
-  if (best) u.voice = best;
+  const chosen = getSelectedVoiceObject();
+  if (chosen) {
+    u.voice = chosen;
+  }
   u.lang = 'en-US';
   u.rate = customRate || speechRate;
-  u.pitch = 1.02;
+  u.pitch = 1.0; // 1.0 고정 (리샘플링 찢어짐 현상 제거)
   return u;
+}
+
+function startBackgroundAudioSession(titleText) {
+  const bgAudio = document.getElementById('bgKeepAliveAudio');
+  if (bgAudio) {
+    bgAudio.play().catch(() => {});
+  }
+  if ('mediaSession' in navigator) {
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: titleText || '데일리 영어 리딩 클럽',
+        artist: '데일리 영어 리딩 클럽',
+        album: activeCategory === 'private' ? '나만의 묵상 아티클' : '가족 영어 리딩'
+      });
+      navigator.mediaSession.playbackState = 'playing';
+      navigator.mediaSession.setActionHandler('play', () => {
+        if (window.speechSynthesis.paused) {
+          window.speechSynthesis.resume();
+          if (bgAudio) bgAudio.play().catch(() => {});
+          navigator.mediaSession.playbackState = 'playing';
+        } else if (!isBackgroundPlayingAll) {
+          playAllSentences();
+        }
+      });
+      navigator.mediaSession.setActionHandler('pause', () => {
+        window.speechSynthesis.pause();
+        if (bgAudio) bgAudio.pause();
+        navigator.mediaSession.playbackState = 'paused';
+      });
+      navigator.mediaSession.setActionHandler('stop', () => {
+        stopSpeech();
+      });
+    } catch (e) {}
+  }
+}
+
+function stopBackgroundAudioSession() {
+  isBackgroundPlayingAll = false;
+  clearInterval(bgWatchdogTimer);
+  bgWatchdogTimer = null;
+
+  const bgAudio = document.getElementById('bgKeepAliveAudio');
+  if (bgAudio) {
+    bgAudio.pause();
+    bgAudio.currentTime = 0;
+  }
+  if ('mediaSession' in navigator) {
+    try {
+      navigator.mediaSession.playbackState = 'none';
+    } catch (e) {}
+  }
 }
 
 function speakChunkSafely(text, rate, isCancelledFn) {
@@ -2408,22 +2471,44 @@ function speakSingle(idx) {
 function playAllSentences() {
   stopSpeech();
   stepPlayCancel = false;
+  isBackgroundPlayingAll = true;
+
   const story = getCurrentStory();
   if (!story) return;
   const lvData = story.levels[currentLevel] || story.levels.lv3;
   const list = lvData.sentences;
   let idx = 0;
 
+  // 백그라운드 오디오 세션 & 잠금화면 컨트롤 활성화
+  startBackgroundAudioSession(story.title);
+
+  // 크롬/안드로이드 백그라운드에서 speechSynthesis가 일시 멈추는 현상 방지용 감시 타이머
+  bgWatchdogTimer = setInterval(() => {
+    if (!stepPlayCancel && isBackgroundPlayingAll && window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+    }
+  }, 1500);
+
   function next() {
     if (stepPlayCancel || idx >= list.length) {
       document.querySelectorAll('.sentence-card').forEach(c => c.classList.remove('speaking'));
+      stopBackgroundAudioSession();
       return;
     }
     document.querySelectorAll('.sentence-card').forEach(c => c.classList.remove('speaking'));
-    document.getElementById(`sent-card-${idx}`).classList.add('speaking');
+    const cardEl = document.getElementById(`sent-card-${idx}`);
+    if (cardEl) cardEl.classList.add('speaking');
 
     const u = createUtterance(list[idx].en);
-    u.onend = () => { idx++; setTimeout(next, 450); };
+    // setTimeout 없이 onend에서 즉시 다음 문장을 호출해 백그라운드 스로틀링 회피
+    u.onend = () => {
+      idx++;
+      next();
+    };
+    u.onerror = () => {
+      idx++;
+      next();
+    };
     window.speechSynthesis.speak(u);
   }
   next();
@@ -2431,6 +2516,7 @@ function playAllSentences() {
 
 function stopSpeech() {
   stepPlayCancel = true;
+  stopBackgroundAudioSession();
   window.speechSynthesis.cancel();
   document.querySelectorAll('.sentence-card').forEach(c => c.classList.remove('speaking'));
   document.querySelectorAll('.word-token').forEach(el => el.classList.remove('active-word'));
@@ -2545,7 +2631,7 @@ function saveSettings() {
   const val = document.getElementById('gasUrlInput').value.trim();
   const voiceVal = document.getElementById('voiceSelect').value;
   localStorage.setItem('gas_web_app_url', val);
-  if (voiceVal) localStorage.setItem('selected_voice_name', voiceVal);
+  localStorage.setItem('selected_voice_name', voiceVal);
   closeSettings();
   loadData();
 }
