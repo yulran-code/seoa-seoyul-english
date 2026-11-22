@@ -276,37 +276,40 @@
       border-radius: 999px;
     }
 
-    /* 포인트 대시보드 카드 */
+    /* 개인 포인트 대시보드 카드 */
     .point-dashboard-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: 1fr;
       gap: 10px;
       margin-bottom: 14px;
+    }
+    .point-dashboard-grid.multi {
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     }
     .point-summary-card {
       background: linear-gradient(145deg, #ffffff, #fffbeb);
       border: 1.5px solid #fde68a;
       border-radius: 12px;
-      padding: 13px 14px;
+      padding: 14px 16px;
     }
     .ps-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
     }
-    .ps-name { font-size: 15px; font-weight: 800; color: #0f172a; }
-    .ps-total { font-size: 17px; font-weight: 900; color: #d97706; }
-    .ps-detail { font-size: 12px; color: #475569; line-height: 1.55; }
+    .ps-name { font-size: 16px; font-weight: 800; color: #0f172a; }
+    .ps-total { font-size: 18px; font-weight: 900; color: #d97706; }
+    .ps-detail { font-size: 12.5px; color: #475569; line-height: 1.65; }
     .ps-next-goal {
-      margin-top: 7px;
-      padding: 5px 8px;
-      border-radius: 7px;
+      margin-top: 9px;
+      padding: 7px 10px;
+      border-radius: 8px;
       background: #fef3c7;
       color: #92400e;
-      font-size: 11.5px;
+      font-size: 12px;
       font-weight: 700;
-      line-height: 1.45;
+      line-height: 1.5;
     }
     .point-rule-box {
       background: #f8fafc;
@@ -705,7 +708,7 @@
       line-height: 1.55;
     }
     .board-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: center; }
-    .board-table th, .board-table td { border: 1px solid var(--border); padding: 9px 6px; }
+    .board-table th, .board-table td { border: 1px solid var(--border); padding: 9px 8px; }
     .board-table th { background: #f1f5f9; font-weight: 800; }
     .cell-done { background: var(--success-soft); color: #047857; font-weight: 800; }
     .cell-review { background: #eff6ff; color: #1d4ed8; font-weight: 700; }
@@ -857,10 +860,10 @@
       </div>
     </div>
 
-    <!-- 3. 학습 현황표 & 포인트 대시보드 뷰 -->
+    <!-- 3. 내 학습 현황 & 내 포인트 대시보드 뷰 (다른 사람 정보 비공개) -->
     <div id="boardView" class="hidden">
       <div class="card">
-        <h3 class="sec-title" style="margin-bottom:10px;">🪙 우리 가족 & 친구 포인트 · 연속 학습 현황</h3>
+        <h3 class="sec-title" id="myPointSectionTitle" style="margin-bottom:10px;">🪙 나의 포인트 · 연속 학습 현황</h3>
         <div class="point-rule-box">
           <strong>📌 포인트 적립 규칙</strong><br/>
           • <strong>기본 완료 점수:</strong> 당일 학습이든 밀린 학습 복습이든 3단계 자동 완료 시 무조건 <strong>+10 P</strong> 지급<br/>
@@ -869,7 +872,7 @@
         </div>
         <div class="point-dashboard-grid" id="pointDashboardGrid"></div>
 
-        <h3 class="sec-title" style="margin:14px 0 10px;">📊 날짜별 학습 완료 기록표</h3>
+        <h3 class="sec-title" id="myRecordSectionTitle" style="margin:14px 0 10px;">📊 나의 날짜별 학습 완료 기록표</h3>
         <div style="overflow-x:auto;">
           <table class="board-table" id="progressBoardTable"></table>
         </div>
@@ -1098,7 +1101,6 @@ function renderLoginChoices() {
   const grid = document.getElementById('loginUserGrid');
   if (!grid) return;
 
-  // 4명일 때는 2x2 배치, 그 외에는 3열 깔끔 배치
   grid.classList.toggle('cols-2', usersList.length === 4);
 
   grid.innerHTML = usersList.map(u => `
@@ -2317,17 +2319,38 @@ function cycleSpeed() {
   document.getElementById('speedBtn').textContent = `속도 ${speechRate}x`;
 }
 
-/* ==================== 학습 현황표 & 포인트 대시보드 ==================== */
+/* ==================== 내 학습 현황표 & 내 포인트 대시보드 (타인 정보 숨김) ==================== */
 function renderProgressBoard() {
+  const me = usersList.find(u => u.id === currentUser);
+  if (!me) return;
+
+  // 일반 모드에서는 본인 정보만 표시, 관리자 검수 모드(?mode=review)일 때만 전체 표시
+  const targetUsers = isReviewMode ? usersList : [me];
+
+  const pointTitleEl = document.getElementById('myPointSectionTitle');
+  if (pointTitleEl) {
+    pointTitleEl.textContent = isReviewMode
+      ? '🪙 전체 사용자 포인트 · 연속 학습 현황 (관리자 검수)'
+      : `🪙 ${me.name} 님의 포인트 · 연속 학습 현황`;
+  }
+
+  const recordTitleEl = document.getElementById('myRecordSectionTitle');
+  if (recordTitleEl) {
+    recordTitleEl.textContent = isReviewMode
+      ? '📊 전체 사용자 날짜별 학습 완료 기록표 (관리자 검수)'
+      : `📊 ${me.name} 님의 날짜별 학습 완료 기록표`;
+  }
+
   const dashEl = document.getElementById('pointDashboardGrid');
   if (dashEl) {
-    dashEl.innerHTML = usersList.map(u => {
+    dashEl.classList.toggle('multi', targetUsers.length > 1);
+    dashEl.innerHTML = targetUsers.map(u => {
       const s = calculateUserStats(u.id);
       return `
         <div class="point-summary-card">
           <div class="ps-header">
-            <span class="ps-name">${u.name}</span>
-            <span class="ps-total">🪙 잔액 ${s.availablePoints} P</span>
+            <span class="ps-name">👤 ${u.name} 님</span>
+            <span class="ps-total">🪙 사용 가능 ${s.availablePoints} P</span>
           </div>
           <div class="ps-detail">
             • 총 획득: <strong>${s.earnedPoints} P</strong> (기본 ${s.basePoints} + 누적보너스 ${s.cumulativeBonusPoints} + 연속보너스 ${s.streakBonusPoints})<br/>
@@ -2354,7 +2377,7 @@ function renderProgressBoard() {
       <tr>
         <th>날짜</th>
         <th>에피소드</th>
-        ${usersList.map(u => `<th>${u.name}</th>`).join('')}
+        ${targetUsers.map(u => `<th>${isReviewMode ? u.name : '학습 상태'}</th>`).join('')}
       </tr>
     </thead>
     <tbody>
@@ -2363,7 +2386,7 @@ function renderProgressBoard() {
     html += `<tr>
       <td><strong>${st.date}</strong></td>
       <td style="text-align:left;">${st.title}</td>
-      ${usersList.map(u => {
+      ${targetUsers.map(u => {
         const p = progressData[u.id]?.[st.date];
         if (p && p.read && p.quiz && p.speak) {
           const isOnTime = !p.completedDate || p.completedDate === st.date;
