@@ -432,6 +432,10 @@
       margin-left: 5px;
       vertical-align: middle;
     }
+    .audio-badge.cached {
+      background: #d1fae5;
+      color: #065f46;
+    }
 
     .legend-bar {
       display: flex;
@@ -770,10 +774,10 @@
   <header>
     <div class="brand">
       <h1>📚 데일리 영어 리딩 클럽</h1>
-      <p>코난 · 도라에몽 · 향꽃과 함께하는 하루 10분 영어</p>
+      <p>코난 · 하이큐 · 도라에몽 · 향꽃과 함께하는 하루 10분 영어</p>
     </div>
     <div class="header-actions">
-      <span id="connStatus" class="status-badge">연결 확인 중...</span>
+      <span id="connStatus" class="status-badge">⚡ 즉시 캐시 모드</span>
       <button id="tabStudyBtn" class="icon-btn active-nav hidden" onclick="switchMainView('study')">📖 오늘의 학습</button>
       <button id="tabShopBtn" class="icon-btn hidden" onclick="switchMainView('shop')">🎁 보상 상점</button>
       <button id="tabBoardBtn" class="icon-btn hidden" onclick="switchMainView('board')">📊 학습 & 포인트</button>
@@ -812,8 +816,8 @@
     <!-- 1. 오늘의 학습 뷰 -->
     <div id="studyView">
       <div id="categorySwitchBar" class="category-switch-bar hidden">
-        <button type="button" id="catPublicBtn" class="cat-btn active" onclick="switchStoryCategory('public')">📚 가족 스토리 (코난·도라에몽·향꽃)</button>
-        <button type="button" id="catPrivateBtn" class="cat-btn private-cat" onclick="switchStoryCategory('private')">✝️ 나만의 묵상 아티클 (팀 켈러)</button>
+        <button type="button" id="catPublicBtn" class="cat-btn active" onclick="switchStoryCategory('public')">📚 가족 스토리</button>
+        <button type="button" id="catPrivateBtn" class="cat-btn private-cat" onclick="switchStoryCategory('private')">✝️ 나만의 묵상 아티클</button>
       </div>
 
       <div class="level-tabs" id="levelTabs"></div>
@@ -917,7 +921,7 @@
 
 <div id="wordToast" class="word-toast hidden"></div>
 
-<!-- Gemini AI 성우 WAV/MP3 메인 플레이어 (백그라운드 및 문장 구간 재생용) -->
+<!-- AI 성우 오디오 메인 플레이어 -->
 <audio id="cloudMp3Player" preload="auto" playsinline></audio>
 
 <!-- 새 사용자 등록 모달 -->
@@ -1026,6 +1030,7 @@ const LEVEL_SHORT_LABEL = {
 
 const CHARACTER_NAMES = [
   'Conan', 'Ran', 'Kogoro', 'Ai', 'Agasa', 'Sonoko', 'Heiji', 'Kaito', 'Megure',
+  'Hinata', 'Kageyama', 'Nishinoya', 'Tsukishima', 'Daichi', 'Sugawara', 'Kenma',
   'Doraemon', 'Jingu', 'Iseul', 'Tung', 'Bisil', 'Youngmin',
   'Rintaro', 'Kaoruko', 'Shohei', 'Subaru', 'Saku'
 ];
@@ -1043,9 +1048,12 @@ const NO_BREAK_AFTER_WORDS = new Set([
   'to', 'very', 'so', 'too', 'big', 'blue', 'thin', 'old', 'new', 'little', 'small', 'dark', 'empty', 'famous'
 ]);
 
+const CACHE_DATA_KEY = 'cached_app_payload_v1';
+const PENDING_POSTS_KEY = 'pending_post_queue_v1';
+
 let usersList = [...DEFAULT_USERS];
 let currentUser = localStorage.getItem('logged_in_user') || '';
-let selectedLoginUser = 'seoa';
+let selectedLoginUser = currentUser || 'seoa';
 let newUserLevel = 'lv1';
 let currentLevel = 'lv1';
 let activeCategory = 'public';
@@ -1063,11 +1071,13 @@ let speechRate = 1.0;
 let stepPlayCancel = false;
 const isReviewMode = new URLSearchParams(window.location.search).get('mode') === 'review';
 
-// AI 성우 오디오 캐시 및 구간 제어 상태
-const audioBlobCache = {}; // { [fileId]: blobUrl }
-let audioMode = 'none';    // 'none' | 'all' | 'single'
-let audioTimings = [];     // [ [startSec, endSec], ... ]
+// 메모리 캐시 + IndexedDB 영구 캐시 + 구간 제어 상태
+const audioBlobCache = {};
+const idbAudioSet = new Set();
+let audioMode = 'none';
+let audioTimings = [];
 let audioSingleEnd = 0;
+let idbInstance = null;
 
 let activeRecorder = null;
 let activeRecTarget = null;
@@ -1112,8 +1122,130 @@ function notifyToast(htmlMsg, durationMs = 3800) {
   window._toastTimer = setTimeout(() => toast.classList.add('hidden'), durationMs);
 }
 
+/* ==================== IndexedDB 오디오 영구 저장소 ==================== */
+function openAudioIdb() {
+  return new Promise(resolve => {
+    if (idbInstance) return resolve(idbInstance);
+    if (!('indexedDB' in window)) return resolve(null);
+    try {
+      const req = indexedDB.open('DailyEnglishAudioCacheDB', 1);
+      req.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains('audios')) {
+          const store = db.createObjectStore('audios', { keyPath: 'fileId' });
+          store.createIndex('savedAt', 'savedAt', { unique: false });
+        }
+      };
+      req.onsuccess = e => {
+        idbInstance = e.target.result;
+        resolve(idbInstance);
+      };
+      req.onerror = () => resolve(null);
+    } catch (_) {
+      resolve(null);
+    }
+  });
+}
+
+async function getAudioFromIdb(fileId) {
+  const db = await openAudioIdb();
+  if (!db) return null;
+  return new Promise(resolve => {
+    try {
+      const tx = db.transaction('audios', 'readonly');
+      const store = tx.objectStore('audios');
+      const req = store.get(fileId);
+      req.onsuccess = () => {
+        const rec = req.result;
+        if (rec && rec.blob) {
+          idbAudioSet.add(fileId);
+          resolve(rec.blob);
+        } else {
+          resolve(null);
+        }
+      };
+      req.onerror = () => resolve(null);
+    } catch (_) {
+      resolve(null);
+    }
+  });
+}
+
+async function saveAudioToIdb(fileId, blob) {
+  const db = await openAudioIdb();
+  if (!db) return;
+  try {
+    const tx = db.transaction('audios', 'readwrite');
+    const store = tx.objectStore('audios');
+    store.put({ fileId, blob, savedAt: Date.now() });
+    idbAudioSet.add(fileId);
+
+    // 오래된 캐시 자동 정리 (최근 20개만 유지)
+    const allReq = store.getAll();
+    allReq.onsuccess = () => {
+      const items = allReq.result || [];
+      if (items.length > 20) {
+        items.sort((a, b) => (a.savedAt || 0) - (b.savedAt || 0));
+        const toDelete = items.slice(0, items.length - 20);
+        toDelete.forEach(it => store.delete(it.fileId));
+      }
+    };
+  } catch (_) {}
+}
+
+/* ==================== 백그라운드 전송 큐 (딜레이 제거용) ==================== */
+function enqueuePostPayload(payloadObj) {
+  const gasUrl = getGasUrl();
+  if (!gasUrl) return;
+
+  const queue = JSON.parse(localStorage.getItem(PENDING_POSTS_KEY) || '[]');
+  queue.push(payloadObj);
+  localStorage.setItem(PENDING_POSTS_KEY, JSON.stringify(queue));
+  flushPostQueue();
+}
+
+async function flushPostQueue() {
+  const gasUrl = getGasUrl();
+  if (!gasUrl) return;
+
+  let queue = JSON.parse(localStorage.getItem(PENDING_POSTS_KEY) || '[]');
+  if (!queue.length) return;
+
+  const remaining = [];
+  for (const item of queue) {
+    try {
+      await fetch(gasUrl, {
+        method: 'POST',
+        body: JSON.stringify(item)
+      });
+    } catch (_) {
+      remaining.push(item);
+    }
+  }
+  localStorage.setItem(PENDING_POSTS_KEY, JSON.stringify(remaining));
+}
+
+/* ==================== 앱 시작 & 즉시 캐시 렌더링 ==================== */
+function applyPayloadToState(data) {
+  if (!data || data.status !== 'ok') return;
+  if (Array.isArray(data.users) && data.users.length > 0) {
+    usersList = data.users;
+    if (!usersList.some(u => u.id === selectedLoginUser)) {
+      selectedLoginUser = usersList[0].id;
+    }
+  }
+  allStories = data.stories || [];
+  rewardsList = data.rewards || [];
+  redemptionsList = data.redemptions || [];
+  if (data.progress) {
+    progressData = data.progress;
+    localStorage.setItem('backup_progress', JSON.stringify(progressData));
+  }
+}
+
 window.addEventListener('DOMContentLoaded', async () => {
   initCloudMp3PlayerEvents();
+  await openAudioIdb();
 
   if (isReviewMode) {
     document.getElementById('reviewTopBar').classList.remove('hidden');
@@ -1124,16 +1256,38 @@ window.addEventListener('DOMContentLoaded', async () => {
       renderReviewList();
     };
   }
+
+  // 1. 캐시된 데이터가 있으면 네트워크 대기 없이 0초 만에 즉시 화면 표시!
+  try {
+    const cachedRaw = localStorage.getItem(CACHE_DATA_KEY);
+    if (cachedRaw) {
+      const cachedData = JSON.parse(cachedRaw);
+      applyPayloadToState(cachedData);
+    }
+  } catch (_) {}
+
+  if (currentUser) {
+    const me = usersList.find(u => u.id === currentUser);
+    if (me && !LEVELS.some(l => l.id === currentLevel)) {
+      currentLevel = me.defaultLevel || 'lv1';
+    }
+    speechRate = currentLevel === 'lv1' ? 0.85 : 1.0;
+    document.getElementById('speedBtn').textContent = `속도 ${speechRate}x`;
+  }
+
   renderLoginChoices();
-  await loadData();
+  updateAuthView();
+
+  // 2. 미전송 기록이 있으면 백그라운드에서 먼저 전송 후 최신 시트 데이터 동기화
+  await flushPostQueue();
+  await syncFromSheetBackground();
 });
 
-async function loadData() {
+async function syncFromSheetBackground() {
   const gasUrl = getGasUrl();
   const badge = document.getElementById('connStatus');
   if (!gasUrl) {
     badge.textContent = '⚠️ 시트 미연결';
-    updateAuthView();
     return;
   }
   try {
@@ -1146,27 +1300,24 @@ async function loadData() {
     const res = await fetch(fetchUrl, { cache: 'no-store' });
     const data = await res.json();
     if (data.status === 'ok') {
-      if (Array.isArray(data.users) && data.users.length > 0) {
-        usersList = data.users;
-        if (!usersList.some(u => u.id === selectedLoginUser)) {
-          selectedLoginUser = usersList[0].id;
-        }
-      }
-      allStories = data.stories || [];
-      rewardsList = data.rewards || [];
-      redemptionsList = data.redemptions || [];
-      if (data.progress) {
-        progressData = data.progress;
-        localStorage.setItem('backup_progress', JSON.stringify(progressData));
-      }
-      badge.textContent = '✅ 시트 실시간 연동됨';
+      const prevSignature = localStorage.getItem(CACHE_DATA_KEY);
+      const nextSignature = JSON.stringify(data);
+      localStorage.setItem(CACHE_DATA_KEY, nextSignature);
+
+      applyPayloadToState(data);
+      badge.textContent = '✅ 동기화됨';
       badge.classList.add('ok');
-      renderLoginChoices();
-      updateAuthView();
+
+      // 변경 사항이 있거나 최초 로드시 화면 갱신
+      if (prevSignature !== nextSignature) {
+        renderLoginChoices();
+        updateAuthView();
+      } else {
+        prefetchCurrentStoryAudio();
+      }
     }
-  } catch (e) {
-    badge.textContent = '❌ 연결 오류';
-    updateAuthView();
+  } catch (_) {
+    badge.textContent = '⚡ 캐시 사용 중';
   }
 }
 
@@ -1196,7 +1347,7 @@ function chooseLoginUser(userId) {
   }
 }
 
-async function submitLogin() {
+function submitLogin() {
   const pinVal = document.getElementById('pinInput').value.trim();
   const target = usersList.find(u => u.id === selectedLoginUser);
   const errEl = document.getElementById('loginErrorMsg');
@@ -1210,6 +1361,7 @@ async function submitLogin() {
     return;
   }
 
+  // 로그인 대기 없이 즉시 화면 진입!
   errEl.textContent = '';
   document.getElementById('pinInput').value = '';
   currentUser = target.id;
@@ -1221,7 +1373,8 @@ async function submitLogin() {
   document.getElementById('speedBtn').textContent = `속도 ${speechRate}x`;
   resetSessionTrackers();
 
-  await loadData();
+  updateAuthView();
+  syncFromSheetBackground();
 }
 
 function openAddUserModal() {
@@ -1244,7 +1397,7 @@ function selectNewUserLevel(lv) {
   });
 }
 
-async function submitNewUser() {
+function submitNewUser() {
   const nameVal = document.getElementById('newUserNameInput').value.trim();
   const pinVal = document.getElementById('newUserPinInput').value.trim();
   const errEl = document.getElementById('addUserErrorMsg');
@@ -1262,10 +1415,6 @@ async function submitNewUser() {
     return;
   }
 
-  const btn = document.getElementById('saveNewUserBtn');
-  btn.disabled = true;
-  btn.textContent = '저장 중...';
-
   const newUserObj = {
     id: 'u_' + Date.now(),
     name: nameVal,
@@ -1273,23 +1422,13 @@ async function submitNewUser() {
     defaultLevel: newUserLevel
   };
 
-  const gasUrl = getGasUrl();
-  if (gasUrl) {
-    try {
-      await fetch(gasUrl, {
-        method: 'POST',
-        body: JSON.stringify({
-          action: 'add_user',
-          id: newUserObj.id,
-          name: newUserObj.name,
-          pin: newUserObj.pin,
-          defaultLevel: newUserObj.defaultLevel
-        })
-      });
-    } catch (e) {
-      console.error('사용자 시트 저장 오류:', e);
-    }
-  }
+  enqueuePostPayload({
+    action: 'add_user',
+    id: newUserObj.id,
+    name: newUserObj.name,
+    pin: newUserObj.pin,
+    defaultLevel: newUserObj.defaultLevel
+  });
 
   usersList.push(newUserObj);
   selectedLoginUser = newUserObj.id;
@@ -1301,8 +1440,6 @@ async function submitNewUser() {
   speechRate = currentLevel === 'lv1' ? 0.85 : 1.0;
   document.getElementById('speedBtn').textContent = `속도 ${speechRate}x`;
 
-  btn.disabled = false;
-  btn.textContent = '✅ 등록하고 시작하기';
   closeAddUserModal();
   resetSessionTrackers();
   renderLoginChoices();
@@ -1310,14 +1447,14 @@ async function submitNewUser() {
   alert(`🎉 환영합니다, ${newUserObj.name} 님!\n다음에 로그인할 때 비밀번호 [${newUserObj.pin}]을 입력해 주세요.`);
 }
 
-async function logoutUser() {
+function logoutUser() {
   stopSpeech();
   currentUser = '';
   activeCategory = 'public';
   currentStoryIdx = 0;
   localStorage.removeItem('logged_in_user');
   resetSessionTrackers();
-  await loadData();
+  updateAuthView();
 }
 
 function updateAuthView() {
@@ -1357,6 +1494,7 @@ function updateAuthView() {
     renderStory();
     renderRewardShop();
     renderProgressBoard();
+    prefetchCurrentStoryAudio();
   }
 }
 
@@ -1583,7 +1721,7 @@ function renderRewardShop() {
   }
 }
 
-async function redeemReward(rewardId) {
+function redeemReward(rewardId) {
   const rw = rewardsList.find(r => r.id === rewardId);
   if (!rw) return;
   const stats = calculateUserStats(currentUser);
@@ -1605,22 +1743,16 @@ async function redeemReward(rewardId) {
     status: '미사용'
   });
 
+  enqueuePostPayload({
+    action: 'redeem_reward',
+    user: currentUser,
+    rewardTitle: rw.title,
+    cost: rw.cost
+  });
+
   renderProfileBanner();
   renderRewardShop();
   renderProgressBoard();
-
-  const gasUrl = getGasUrl();
-  if (gasUrl) {
-    await fetch(gasUrl, {
-      method: 'POST',
-      body: JSON.stringify({
-        action: 'redeem_reward',
-        user: currentUser,
-        rewardTitle: rw.title,
-        cost: rw.cost
-      })
-    });
-  }
   alert('🎉 쿠폰 교환이 완료되었습니다! 아래 [내가 교환한 쿠폰함]을 엄마에게 보여주세요.');
 }
 
@@ -1644,6 +1776,7 @@ function selectLevel(lvId) {
   renderLevelTabs();
   renderEpisodeBar();
   renderStory();
+  prefetchCurrentStoryAudio();
 }
 
 function renderEpisodeBar() {
@@ -1682,6 +1815,7 @@ function selectEpisode(idx) {
   renderProfileBanner();
   renderEpisodeBar();
   renderStory();
+  prefetchCurrentStoryAudio();
 }
 
 function getSentenceChunks(sentenceObj) {
@@ -1802,9 +1936,14 @@ function renderStory() {
   const isChildMode = currentLevel === 'lv1' || currentLevel === 'lv2';
   const lvData = story.levels[currentLevel] || story.levels.lv3;
   const hasAiAudio = !!(lvData && lvData.audio && lvData.audio.fileId);
+  const isReadyLocal = hasAiAudio && (!!audioBlobCache[lvData.audio.fileId] || idbAudioSet.has(lvData.audio.fileId));
   const voiceTag = hasAiAudio && lvData.audio.voice ? ` (${lvData.audio.voice})` : '';
 
-  document.getElementById('storyTitle').innerHTML = `${story.title} ${hasAiAudio ? `<span class="audio-badge">🎧 AI 성우${voiceTag}</span>` : ''}`;
+  document.getElementById('storyTitle').innerHTML = `${story.title} ${
+    hasAiAudio
+      ? `<span class="audio-badge ${isReadyLocal ? 'cached' : ''}" id="audioReadyBadge">${isReadyLocal ? '⚡ 즉시재생' : '🎧 AI 성우'}${voiceTag}</span>`
+      : ''
+  }`;
   document.getElementById('storyMeta').textContent = activeCategory === 'private'
     ? `${story.date} · 🔒 나만의 A2~B1 묵상 아티클`
     : `${story.date} · ${lvObj.title} (${lvObj.desc})`;
@@ -1929,16 +2068,26 @@ function toggleAllPhraseKo() {
   });
 }
 
-/* ==================== AI 성우 WAV/MP3 로더 & 타임스탬프 플레이어 ==================== */
-async function getAiAudioBlobUrl(fileId) {
+/* ==================== AI 성우 오디오 선로딩 + IndexedDB 캐시 + 재생 ==================== */
+async function getAiAudioBlobUrl(fileId, isBackgroundPrefetch = false) {
   if (audioBlobCache[fileId]) return audioBlobCache[fileId];
+
+  // 1. 기기 내 IndexedDB 영구 캐시 먼저 확인 (0초)
+  const idbBlob = await getAudioFromIdb(fileId);
+  if (idbBlob) {
+    const blobUrl = URL.createObjectURL(idbBlob);
+    audioBlobCache[fileId] = blobUrl;
+    const badge = document.getElementById('audioReadyBadge');
+    if (badge) badge.classList.add('cached');
+    return blobUrl;
+  }
 
   const gasUrl = getGasUrl();
   if (!gasUrl) return null;
 
   const btn = document.getElementById('playAllBtn');
   const origText = btn ? btn.textContent : '🔊 전체 듣기';
-  if (btn) {
+  if (!isBackgroundPrefetch && btn) {
     btn.disabled = true;
     btn.textContent = '⏳ AI 음성 로딩 중...';
   }
@@ -1957,24 +2106,50 @@ async function getAiAudioBlobUrl(fileId) {
       }
       const byteArray = new Uint8Array(byteNumbers);
       const blob = new Blob([byteArray], { type: data.mimeType || 'audio/wav' });
+
+      // IndexedDB에 저장해 다음 방문/복습 시 즉시 재생
+      await saveAudioToIdb(fileId, blob);
+
       const blobUrl = URL.createObjectURL(blob);
       audioBlobCache[fileId] = blobUrl;
+
+      const badge = document.getElementById('audioReadyBadge');
+      if (badge) {
+        badge.classList.add('cached');
+        if (badge.textContent.includes('🎧 AI 성우')) {
+          badge.textContent = badge.textContent.replace('🎧 AI 성우', '⚡ 즉시재생');
+        }
+      }
       return blobUrl;
-    } else if (data.stories && !data.base64) {
+    } else if (!isBackgroundPrefetch && data.stories && !data.base64) {
       notifyToast('⚠️ Apps Script에서 <strong>Code.gs 새 버전 배포</strong>가 필요합니다. (현재 기기 음성으로 대체 재생)', 5500);
-    } else if (data.status === 'error') {
+    } else if (!isBackgroundPrefetch && data.status === 'error') {
       notifyToast(`⚠️ 오디오 불러오기 오류: ${data.message}`, 4500);
     }
   } catch (e) {
-    console.error('AI 오디오 로드 오류:', e);
-    notifyToast('⚠️ 네트워크 오류로 AI 음성을 불러오지 못해 기기 음성으로 재생합니다.', 4000);
+    if (!isBackgroundPrefetch) {
+      notifyToast('⚠️ 네트워크 오류로 AI 음성을 불러오지 못해 기기 음성으로 재생합니다.', 4000);
+    }
   } finally {
-    if (btn) {
+    if (!isBackgroundPrefetch && btn) {
       btn.disabled = false;
       btn.textContent = origText;
     }
   }
   return null;
+}
+
+// 현재 화면에 열린 스토리의 오디오를 백그라운드에서 미리 받아 캐싱
+function prefetchCurrentStoryAudio() {
+  const story = getCurrentStory();
+  if (!story) return;
+  const lvData = story.levels[currentLevel] || story.levels.lv3;
+  const fileId = lvData?.audio?.fileId;
+  if (!fileId || audioBlobCache[fileId]) return;
+
+  setTimeout(() => {
+    getAiAudioBlobUrl(fileId, true);
+  }, 150);
 }
 
 function initCloudMp3PlayerEvents() {
@@ -2053,7 +2228,7 @@ async function playAllSentences() {
   if (!lvData) return;
 
   if (lvData.audio && lvData.audio.fileId) {
-    const blobUrl = await getAiAudioBlobUrl(lvData.audio.fileId);
+    const blobUrl = await getAiAudioBlobUrl(lvData.audio.fileId, false);
     if (blobUrl) {
       const player = document.getElementById('cloudMp3Player');
       audioMode = 'all';
@@ -2103,7 +2278,7 @@ async function speakSingle(idx) {
   if (card) card.classList.add('speaking');
 
   if (lvData.audio && lvData.audio.fileId && Array.isArray(lvData.audio.timings) && lvData.audio.timings[idx]) {
-    const blobUrl = await getAiAudioBlobUrl(lvData.audio.fileId);
+    const blobUrl = await getAiAudioBlobUrl(lvData.audio.fileId, false);
     if (blobUrl) {
       const player = document.getElementById('cloudMp3Player');
       const [startSec, endSec] = lvData.audio.timings[idx];
@@ -2429,7 +2604,7 @@ function checkQuiz(btn, qIdx, selectedIdx, correctIdx) {
   checkAutoCompletion();
 }
 
-async function checkAutoCompletion() {
+function checkAutoCompletion() {
   const story = getCurrentStory();
   if (!story || !currentUser) return;
   const lvData = story.levels[currentLevel] || story.levels.lv3;
@@ -2441,19 +2616,19 @@ async function checkAutoCompletion() {
   const totalSent = (lvData.sentences || []).length;
   const doneSent = Object.keys(sentRecordUrls).length;
   if (!p.read && totalSent > 0 && doneSent >= totalSent) {
-    await markStepDone('read');
+    markStepDone('read');
   }
 
   const totalQuiz = (lvData.quiz || []).length;
   const doneQuiz = Object.keys(quizSolvedMap).length;
   if (!p.quiz && totalQuiz > 0 && doneQuiz >= totalQuiz) {
-    await markStepDone('quiz');
+    markStepDone('quiz');
   }
 
   const totalSpeak = (lvData.speaking || []).length;
   const doneSpeak = Object.keys(speakRecordUrls).length;
   if (!p.speak && totalSpeak > 0 && doneSpeak >= totalSpeak) {
-    await markStepDone('speak');
+    markStepDone('speak');
   }
 
   renderCompleteBar();
@@ -2511,7 +2686,7 @@ function renderCompleteBar() {
   }
 }
 
-async function markStepDone(step) {
+function markStepDone(step) {
   const story = getCurrentStory();
   if (!story || !currentUser) return;
   const pKey = story.progressKey || story.date;
@@ -2530,19 +2705,13 @@ async function markStepDone(step) {
   }
   localStorage.setItem('backup_progress', JSON.stringify(progressData));
 
+  enqueuePostPayload({ user: currentUser, date: pKey, step });
+
   renderCompleteBar();
   renderProfileBanner();
   renderEpisodeBar();
   renderRewardShop();
   renderProgressBoard();
-
-  const gasUrl = getGasUrl();
-  if (gasUrl) {
-    await fetch(gasUrl, {
-      method: 'POST',
-      body: JSON.stringify({ user: currentUser, date: pKey, step })
-    });
-  }
 }
 
 /* ==================== 기타 오디오 & 해석 토글 ==================== */
@@ -2696,7 +2865,7 @@ function saveSettings() {
   localStorage.setItem('gas_web_app_url', val);
   localStorage.setItem('selected_voice_name', voiceVal);
   closeSettings();
-  loadData();
+  syncFromSheetBackground();
 }
 
 function renderAdminCoupons() {
@@ -2726,20 +2895,13 @@ function renderAdminCoupons() {
   }).join('');
 }
 
-async function fulfillCoupon(redeemId) {
+function fulfillCoupon(redeemId) {
   const target = redemptionsList.find(r => r.redeemId === redeemId);
   if (!target) return;
   target.status = '지급완료';
   renderAdminCoupons();
   renderRewardShop();
-
-  const gasUrl = getGasUrl();
-  if (gasUrl) {
-    await fetch(gasUrl, {
-      method: 'POST',
-      body: JSON.stringify({ action: 'fulfill_redemption', redeemId })
-    });
-  }
+  enqueuePostPayload({ action: 'fulfill_redemption', redeemId });
 }
 
 function renderReviewList() {
