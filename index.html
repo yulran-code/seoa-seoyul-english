@@ -695,6 +695,7 @@
     .quiz-feedback.ok { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
     .quiz-feedback.no { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
 
+    /* 스피킹 카드 & 단어별 터치 읽기 */
     .speak-item {
       background: #f8fafc;
       border: 1px solid var(--border);
@@ -702,13 +703,39 @@
       padding: 11px 12px;
       margin-bottom: 8px;
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 8px;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 7px;
       font-size: 14px;
     }
     .speak-item.rec-done { border-left: 4px solid var(--success); }
+    .speak-sentence {
+      font-size: 15px;
+      font-weight: 700;
+      color: #0f172a;
+      line-height: 1.75;
+      width: 100%;
+    }
+    .speak-word {
+      display: inline-block;
+      padding: 1px 3px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .speak-word:hover {
+      background: #e0f2fe;
+      color: #0369a1;
+    }
+    .speak-word.active-speak-word {
+      background: #fef08a !important;
+      color: #000 !important;
+      font-weight: 900;
+    }
+    .speak-ko {
+      font-size: 12.5px;
+      color: var(--muted);
+    }
     .speak-btns { display: flex; gap: 5px; flex-wrap: wrap; }
 
     /* 자동 완료 상태 표시 배지 */
@@ -869,7 +896,10 @@
       </div>
 
       <div class="card">
-        <h3 class="sec-title" style="margin-bottom:10px;">🗣️ 소리 내어 따라 말하기 (전 문장 녹음 시 자동 완료)</h3>
+        <div class="sec-header-row">
+          <h3 class="sec-title">🗣️ 소리 내어 따라 말하기</h3>
+          <span style="font-size:11.5px;color:var(--muted);">단어 터치 시 천천히 한 단어씩 발음 재생 · 전 문장 녹음 시 자동 완료</span>
+        </div>
         <div id="speakingList"></div>
       </div>
 
@@ -1071,8 +1101,9 @@ let speechRate = 1.0;
 let stepPlayCancel = false;
 const isReviewMode = new URLSearchParams(window.location.search).get('mode') === 'review';
 
-// 메모리 캐시 + IndexedDB 영구 캐시 + 구간 제어 상태
+// 메모리 캐시 + IndexedDB 영구 캐시 + 진행 중 요청 중복 방지 맵
 const audioBlobCache = {};
+const audioFetchPromises = {};
 const idbAudioSet = new Set();
 let audioMode = 'none';
 let audioTimings = [];
@@ -1180,7 +1211,6 @@ async function saveAudioToIdb(fileId, blob) {
     store.put({ fileId, blob, savedAt: Date.now() });
     idbAudioSet.add(fileId);
 
-    // 오래된 캐시 자동 정리 (최근 20개만 유지)
     const allReq = store.getAll();
     allReq.onsuccess = () => {
       const items = allReq.result || [];
@@ -1193,7 +1223,7 @@ async function saveAudioToIdb(fileId, blob) {
   } catch (_) {}
 }
 
-/* ==================== 백그라운드 전송 큐 (딜레이 제거용) ==================== */
+/* ==================== 백그라운드 전송 큐 ==================== */
 function enqueuePostPayload(payloadObj) {
   const gasUrl = getGasUrl();
   if (!gasUrl) return;
@@ -1245,7 +1275,7 @@ function applyPayloadToState(data) {
 
 window.addEventListener('DOMContentLoaded', async () => {
   initCloudMp3PlayerEvents();
-  await openAudioIdb();
+  openAudioIdb();
 
   if (isReviewMode) {
     document.getElementById('reviewTopBar').classList.remove('hidden');
@@ -1257,7 +1287,6 @@ window.addEventListener('DOMContentLoaded', async () => {
     };
   }
 
-  // 1. 캐시된 데이터가 있으면 네트워크 대기 없이 0초 만에 즉시 화면 표시!
   try {
     const cachedRaw = localStorage.getItem(CACHE_DATA_KEY);
     if (cachedRaw) {
@@ -1278,8 +1307,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   renderLoginChoices();
   updateAuthView();
 
-  // 2. 미전송 기록이 있으면 백그라운드에서 먼저 전송 후 최신 시트 데이터 동기화
-  await flushPostQueue();
+  flushPostQueue();
   await syncFromSheetBackground();
 });
 
@@ -1308,7 +1336,6 @@ async function syncFromSheetBackground() {
       badge.textContent = '✅ 동기화됨';
       badge.classList.add('ok');
 
-      // 변경 사항이 있거나 최초 로드시 화면 갱신
       if (prevSignature !== nextSignature) {
         renderLoginChoices();
         updateAuthView();
@@ -1361,7 +1388,6 @@ function submitLogin() {
     return;
   }
 
-  // 로그인 대기 없이 즉시 화면 진입!
   errEl.textContent = '';
   document.getElementById('pinInput').value = '';
   currentUser = target.id;
@@ -1908,14 +1934,14 @@ function speakWordOnly(word, sentIdx, wIdx) {
   stopSpeech();
   const el = document.getElementById(`wt-${sentIdx}-${wIdx}`);
   if (el) el.classList.add('active-word');
-  const u = createUtterance(word, Math.min(speechRate, 0.78));
+  const u = createUtterance(word, 0.68);
   u.onend = () => { if (el) el.classList.remove('active-word'); };
   window.speechSynthesis.speak(u);
 }
 
 function showWordPopup(word, meaning) {
   stopSpeech();
-  window.speechSynthesis.speak(createUtterance(word, Math.min(speechRate, 0.8)));
+  window.speechSynthesis.speak(createUtterance(word, 0.72));
   notifyToast(`<strong>🔊 ${word}</strong> : ${meaning}`, 3200);
 }
 
@@ -1975,7 +2001,7 @@ function renderStory() {
   vGrid.innerHTML = vocabEntries.map(([word, mean], vIdx) => `
     <div class="vocab-item">
       <div class="vocab-top-row">
-        <div class="vocab-word" onclick="speakText('${word.replace(/'/g, "\\'")}')">🔊 ${word}</div>
+        <div class="vocab-word" onclick="speakText('${word.replace(/'/g, "\\'")}', 0.72)">🔊 ${word}</div>
         <button class="mini-btn" onclick="toggleSingleVocabMean(${vIdx})">뜻 보기</button>
       </div>
       <div class="vocab-mean ${showAllVocabMean ? '' : 'hidden'}" id="vocab-mean-${vIdx}">${mean}</div>
@@ -2068,11 +2094,11 @@ function toggleAllPhraseKo() {
   });
 }
 
-/* ==================== AI 성우 오디오 선로딩 + IndexedDB 캐시 + 재생 ==================== */
+/* ==================== AI 성우 오디오 즉시 선로딩 + IndexedDB 캐시 + 재생 ==================== */
 async function getAiAudioBlobUrl(fileId, isBackgroundPrefetch = false) {
+  if (!fileId) return null;
   if (audioBlobCache[fileId]) return audioBlobCache[fileId];
 
-  // 1. 기기 내 IndexedDB 영구 캐시 먼저 확인 (0초)
   const idbBlob = await getAudioFromIdb(fileId);
   if (idbBlob) {
     const blobUrl = URL.createObjectURL(idbBlob);
@@ -2080,6 +2106,10 @@ async function getAiAudioBlobUrl(fileId, isBackgroundPrefetch = false) {
     const badge = document.getElementById('audioReadyBadge');
     if (badge) badge.classList.add('cached');
     return blobUrl;
+  }
+
+  if (audioFetchPromises[fileId]) {
+    return audioFetchPromises[fileId];
   }
 
   const gasUrl = getGasUrl();
@@ -2092,64 +2122,76 @@ async function getAiAudioBlobUrl(fileId, isBackgroundPrefetch = false) {
     btn.textContent = '⏳ AI 음성 로딩 중...';
   }
 
-  try {
-    const res = await fetch(`${gasUrl}?action=get_audio&fileId=${encodeURIComponent(fileId)}&_t=${Date.now()}`, {
-      cache: 'no-store'
-    });
-    const data = await res.json();
+  const fetchTask = (async () => {
+    try {
+      const res = await fetch(`${gasUrl}?action=get_audio&fileId=${encodeURIComponent(fileId)}&_t=${Date.now()}`, {
+        cache: 'no-store'
+      });
+      const data = await res.json();
 
-    if (data.status === 'ok' && data.base64) {
-      const byteChars = atob(data.base64);
-      const byteNumbers = new Array(byteChars.length);
-      for (let i = 0; i < byteChars.length; i++) {
-        byteNumbers[i] = byteChars.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: data.mimeType || 'audio/wav' });
-
-      // IndexedDB에 저장해 다음 방문/복습 시 즉시 재생
-      await saveAudioToIdb(fileId, blob);
-
-      const blobUrl = URL.createObjectURL(blob);
-      audioBlobCache[fileId] = blobUrl;
-
-      const badge = document.getElementById('audioReadyBadge');
-      if (badge) {
-        badge.classList.add('cached');
-        if (badge.textContent.includes('🎧 AI 성우')) {
-          badge.textContent = badge.textContent.replace('🎧 AI 성우', '⚡ 즉시재생');
+      if (data.status === 'ok' && data.base64) {
+        const byteChars = atob(data.base64);
+        const byteNumbers = new Array(byteChars.length);
+        for (let i = 0; i < byteChars.length; i++) {
+          byteNumbers[i] = byteChars.charCodeAt(i);
         }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: data.mimeType || 'audio/wav' });
+
+        await saveAudioToIdb(fileId, blob);
+
+        const blobUrl = URL.createObjectURL(blob);
+        audioBlobCache[fileId] = blobUrl;
+
+        const badge = document.getElementById('audioReadyBadge');
+        if (badge) {
+          badge.classList.add('cached');
+          if (badge.textContent.includes('🎧 AI 성우')) {
+            badge.textContent = badge.textContent.replace('🎧 AI 성우', '⚡ 즉시재생');
+          }
+        }
+        return blobUrl;
+      } else if (!isBackgroundPrefetch && data.stories && !data.base64) {
+        notifyToast('⚠️ Apps Script에서 <strong>Code.gs 새 버전 배포</strong>가 필요합니다. (현재 기기 음성으로 대체 재생)', 5500);
+      } else if (!isBackgroundPrefetch && data.status === 'error') {
+        notifyToast(`⚠️ 오디오 불러오기 오류: ${data.message}`, 4500);
       }
-      return blobUrl;
-    } else if (!isBackgroundPrefetch && data.stories && !data.base64) {
-      notifyToast('⚠️ Apps Script에서 <strong>Code.gs 새 버전 배포</strong>가 필요합니다. (현재 기기 음성으로 대체 재생)', 5500);
-    } else if (!isBackgroundPrefetch && data.status === 'error') {
-      notifyToast(`⚠️ 오디오 불러오기 오류: ${data.message}`, 4500);
+    } catch (e) {
+      if (!isBackgroundPrefetch) {
+        notifyToast('⚠️ 네트워크 오류로 AI 음성을 불러오지 못해 기기 음성으로 재생합니다.', 4000);
+      }
+    } finally {
+      delete audioFetchPromises[fileId];
+      if (!isBackgroundPrefetch && btn) {
+        btn.disabled = false;
+        btn.textContent = origText;
+      }
     }
-  } catch (e) {
-    if (!isBackgroundPrefetch) {
-      notifyToast('⚠️ 네트워크 오류로 AI 음성을 불러오지 못해 기기 음성으로 재생합니다.', 4000);
-    }
-  } finally {
-    if (!isBackgroundPrefetch && btn) {
-      btn.disabled = false;
-      btn.textContent = origText;
-    }
-  }
-  return null;
+    return null;
+  })();
+
+  audioFetchPromises[fileId] = fetchTask;
+  return fetchTask;
 }
 
-// 현재 화면에 열린 스토리의 오디오를 백그라운드에서 미리 받아 캐싱
+// 현재 화면 회차 오디오를 즉시(0ms) 선로딩하고, 아동 모드면 인접 레벨도 함께 미리 받기
 function prefetchCurrentStoryAudio() {
   const story = getCurrentStory();
   if (!story) return;
-  const lvData = story.levels[currentLevel] || story.levels.lv3;
-  const fileId = lvData?.audio?.fileId;
-  if (!fileId || audioBlobCache[fileId]) return;
 
-  setTimeout(() => {
-    getAiAudioBlobUrl(fileId, true);
-  }, 150);
+  const lvData = story.levels[currentLevel] || story.levels.lv3;
+  const primaryId = lvData?.audio?.fileId;
+  if (primaryId && !audioBlobCache[primaryId]) {
+    getAiAudioBlobUrl(primaryId, true);
+  }
+
+  if (activeCategory === 'public') {
+    const neighborLv = currentLevel === 'lv1' ? 'lv2' : (currentLevel === 'lv2' ? 'lv1' : null);
+    const neighborId = neighborLv ? story.levels?.[neighborLv]?.audio?.fileId : null;
+    if (neighborId && !audioBlobCache[neighborId]) {
+      setTimeout(() => getAiAudioBlobUrl(neighborId, true), 400);
+    }
+  }
 }
 
 function initCloudMp3PlayerEvents() {
@@ -2495,21 +2537,44 @@ async function playBySemanticChunks(sentIdx) {
   }
 }
 
-/* ==================== 통합 녹음 로직 (본문 + 스피킹) ==================== */
+/* ==================== 스피킹 단어 터치 & 통합 녹음 로직 ==================== */
+function formatSpeakingWordsHtml(sentenceEn, spIdx) {
+  const tokens = String(sentenceEn || '').split(/\s+/);
+  return tokens.map((rawWord, wIdx) => {
+    const cleanAlpha = rawWord.replace(/[^a-zA-Z']/g, '');
+    const safeSpoken = cleanAlpha.replace(/'/g, "\\'");
+    if (!safeSpoken) return rawWord;
+    return `<span class="speak-word" id="sw-${spIdx}-${wIdx}" onclick="event.stopPropagation(); speakSingleSlowWord('${safeSpoken}', ${spIdx}, ${wIdx})">${rawWord}</span>`;
+  }).join(' ');
+}
+
+function speakSingleSlowWord(word, spIdx, wIdx) {
+  stopSpeech();
+  const el = document.getElementById(`sw-${spIdx}-${wIdx}`);
+  if (el) el.classList.add('active-speak-word');
+  const u = createUtterance(word, 0.68);
+  u.onend = () => {
+    if (el) el.classList.remove('active-speak-word');
+  };
+  u.onerror = () => {
+    if (el) el.classList.remove('active-speak-word');
+  };
+  window.speechSynthesis.speak(u);
+}
+
 function renderSpeakingList(speakingArr, isChildMode) {
   const spList = document.getElementById('speakingList');
   spList.innerHTML = speakingArr.map((sp, idx) => {
     const isRec = activeRecTarget && activeRecTarget.type === 'speak' && activeRecTarget.idx === idx;
     const hasAudio = !!speakRecordUrls[idx];
+    const listenRate = isChildMode ? 0.68 : 0.85;
     return `
       <div class="speak-item ${hasAudio ? 'rec-done' : ''}">
-        <div style="flex:1;min-width:200px;">
-          <div style="font-weight:700;">"${sp.en}"</div>
-          <div style="font-size:12px;color:var(--muted);">${sp.ko}</div>
-        </div>
+        <div class="speak-sentence">${formatSpeakingWordsHtml(sp.en, idx)}</div>
+        <div class="speak-ko">${sp.ko}</div>
         <div class="speak-btns">
-          <button class="btn" onclick="speakText('${sp.en.replace(/'/g, "\\'")}', ${isChildMode ? 0.72 : 'null'})">
-            ${isChildMode ? '🐢 천천히 듣기' : '🔊 듣기'}
+          <button class="btn" onclick="speakText('${sp.en.replace(/'/g, "\\'")}', ${listenRate})">
+            🐢 천천히 듣기
           </button>
           <button class="btn btn-rec ${isRec ? 'recording' : ''}" onclick="toggleRecord('speak', ${idx})">
             ${isRec ? '⏹ 녹음 중지' : (hasAudio ? '✅ 다시 녹음' : '🎤 녹음하기')}
@@ -2747,6 +2812,7 @@ function stopSpeech() {
   window.speechSynthesis.cancel();
   document.querySelectorAll('.sentence-card').forEach(c => c.classList.remove('speaking'));
   document.querySelectorAll('.word-token').forEach(el => el.classList.remove('active-word'));
+  document.querySelectorAll('.speak-word').forEach(el => el.classList.remove('active-speak-word'));
   const statusBar = document.getElementById('chunkStatusBar');
   if (statusBar) statusBar.classList.add('hidden');
 }
