@@ -1891,35 +1891,156 @@ function getSentenceChunks(sentenceObj) {
   return chunks;
 }
 
+// 초등 기초~일상 회화 내장 미니 사전 (외부 인터넷 없이 즉시 조회)
+const BUILTIN_MINI_DICT = {
+  "look": "보다, 바라보다", "looks": "보인다", "looked": "보았다",
+  "find": "찾다, 발견하다", "found": "찾았다, 발견했다",
+  "open": "열다, 열린", "opened": "열었다",
+  "close": "닫다, 가까운", "closed": "닫힌, 감은",
+  "run": "달리다, 뛰다", "ran": "달렸다, 뛰었다",
+  "jump": "점프하다, 뛰다", "jumps": "점프한다", "jumped": "점프했다",
+  "walk": "걷다, 산책하다", "walked": "걸었다",
+  "help": "돕다, 도움", "helps": "돕는다", "helped": "도왔다",
+  "try": "노력하다, 시도하다", "tries": "노력한다", "tried": "노력했다",
+  "want": "원하다", "wants": "원한다", "wanted": "원했다",
+  "need": "필요하다", "needed": "필요했다",
+  "know": "알다", "knew": "알았다",
+  "think": "생각하다", "thought": "생각했다",
+  "say": "말하다", "said": "말했다",
+  "ask": "묻다, 부탁하다", "asked": "물었다",
+  "answer": "대답, 대답하다",
+  "smile": "미소 짓다, 미소", "smiled": "미소 지었다",
+  "laugh": "웃다", "laughed": "웃었다",
+  "cry": "울다", "cried": "울었다",
+  "worried": "걱정하는, 불안한",
+  "happy": "행복한, 기쁜",
+  "sad": "슬픈",
+  "afraid": "무서워하는, 두려워하는",
+  "surprised": "놀란",
+  "tired": "피곤한",
+  "ready": "준비된",
+  "together": "함께",
+  "alone": "혼자",
+  "quickly": "빠르게",
+  "slowly": "천천히",
+  "carefully": "조심스럽게",
+  "finally": "마침내, 드디어",
+  "suddenly": "갑자기",
+  "again": "다시",
+  "because": "~때문에",
+  "before": "~전에",
+  "after": "~후에",
+  "around": "주위에, ~쯤",
+  "hard": "열심히, 어려운",
+  "kindly": "친절하게",
+  "fast": "빠르게, 빠른",
+  "high": "높이, 높은",
+  "quiet": "조용한",
+  "brightly": "환하게, 밝게"
+};
+
+function getStemCandidates(word) {
+  const w = String(word || '').toLowerCase().replace(/[^a-z']/g, '');
+  if (!w) return [];
+  const candidates = [w];
+  if (w.endsWith('ies') && w.length > 3) candidates.push(w.slice(0, -3) + 'y');
+  if (w.endsWith('ied') && w.length > 3) candidates.push(w.slice(0, -3) + 'y');
+  if (w.endsWith('ing') && w.length > 4) {
+    candidates.push(w.slice(0, -3));
+    candidates.push(w.slice(0, -3) + 'e');
+  }
+  if (w.endsWith('ed') && w.length > 3) {
+    candidates.push(w.slice(0, -2));
+    candidates.push(w.slice(0, -1));
+  }
+  if (w.endsWith('es') && w.length > 3) candidates.push(w.slice(0, -2));
+  if (w.endsWith('s') && w.length > 2) candidates.push(w.slice(0, -1));
+  return [...new Set(candidates)];
+}
+
+function lookupWordMeaning(word, vocabObj) {
+  const candidates = getStemCandidates(word);
+  if (vocabObj) {
+    const entries = Object.entries(vocabObj);
+    for (const cand of candidates) {
+      const hit = entries.find(([k]) => k.trim().toLowerCase() === cand);
+      if (hit) return hit[1];
+    }
+  }
+  for (const cand of candidates) {
+    if (BUILTIN_MINI_DICT[cand]) return BUILTIN_MINI_DICT[cand];
+  }
+  return '';
+}
+
+function handleAnyWordClick(spokenWord, sentIdx, wIdx) {
+  const story = getCurrentStory();
+  const lvData = story?.levels?.[currentLevel] || story?.levels?.lv3;
+  const vocabObj = lvData?.vocab || {};
+  const meaning = lookupWordMeaning(spokenWord, vocabObj);
+
+  if (meaning) {
+    showWordPopup(spokenWord, meaning);
+  } else {
+    speakWordOnly(spokenWord, sentIdx, wIdx);
+    notifyToast(`<strong>🔊 ${spokenWord}</strong> : 사전에 없는 단어예요. (발음 재생)`, 2600);
+  }
+}
+
 function formatSentenceHtml(sentenceObj, vocabObj, sentIdx) {
   const rawWords = sentenceObj.en.split(/\s+/);
-  const vocabKeys = vocabObj ? Object.keys(vocabObj).sort((a, b) => b.length - a.length) : [];
+  const cleanWords = rawWords.map(w => w.toLowerCase().replace(/[^a-z']/g, ''));
+  const vocabEntries = vocabObj ? Object.entries(vocabObj).sort((a, b) => b[0].length - a[0].length) : [];
   const chunks = getSentenceChunks(sentenceObj);
   const chunkEndSet = new Set(chunks.slice(0, -1).map(c => c.end));
 
+  // 1. 구동사(2~4단어) 및 시제 변형 핵심어까지 인덱스별로 매칭 맵 생성
+  const wordMeanMap = {};
+  for (let i = 0; i < rawWords.length; i++) {
+    if (wordMeanMap[i]) continue;
+    for (const [vKey, vMean] of vocabEntries) {
+      const keyParts = vKey.trim().toLowerCase().split(/\s+/);
+      if (keyParts.length > 1 && i + keyParts.length <= rawWords.length) {
+        let allMatch = true;
+        for (let k = 0; k < keyParts.length; k++) {
+          const cands = getStemCandidates(cleanWords[i + k]);
+          if (!cands.includes(keyParts[k])) {
+            allMatch = false;
+            break;
+          }
+        }
+        if (allMatch) {
+          for (let k = 0; k < keyParts.length; k++) {
+            wordMeanMap[i + k] = { key: vKey, mean: vMean };
+          }
+          break;
+        }
+      } else if (keyParts.length === 1) {
+        const cands = getStemCandidates(cleanWords[i]);
+        if (cands.includes(keyParts[0])) {
+          wordMeanMap[i] = { key: vKey, mean: vMean };
+          break;
+        }
+      }
+    }
+  }
+
+  // 2. HTML 조립
   return rawWords.map((rawWord, wIdx) => {
     const cleanAlpha = rawWord.replace(/[^a-zA-Z']/g, '');
     const baseName = cleanAlpha.replace(/'s$/i, '');
     const isChar = CHARACTER_NAMES.some(c => c.toLowerCase() === baseName.toLowerCase());
-
-    let matchedVocabKey = null;
-    for (const vk of vocabKeys) {
-      if (cleanAlpha.toLowerCase().startsWith(vk.toLowerCase())) {
-        matchedVocabKey = vk;
-        break;
-      }
-    }
-
     const safeSpoken = cleanAlpha.replace(/'/g, "\\'");
     let innerHtml = rawWord;
 
     if (isChar) {
       innerHtml = `<span class="char-name" onclick="event.stopPropagation(); speakWordOnly('${safeSpoken}', ${sentIdx}, ${wIdx})">${rawWord}</span>`;
-    } else if (matchedVocabKey) {
-      const safeMean = vocabObj[matchedVocabKey].replace(/'/g, "\\'").replace(/"/g, '&quot;');
-      innerHtml = `<span class="vocab-highlight" onclick="event.stopPropagation(); showWordPopup('${safeSpoken}', '${safeMean}')">${rawWord}</span>`;
+    } else if (wordMeanMap[wIdx]) {
+      const safePhrase = wordMeanMap[wIdx].key.replace(/'/g, "\\'");
+      const safeMean = wordMeanMap[wIdx].mean.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      innerHtml = `<span class="vocab-highlight" onclick="event.stopPropagation(); showWordPopup('${safePhrase}', '${safeMean}')">${rawWord}</span>`;
     } else if (safeSpoken) {
-      innerHtml = `<span onclick="event.stopPropagation(); speakWordOnly('${safeSpoken}', ${sentIdx}, ${wIdx})">${rawWord}</span>`;
+      innerHtml = `<span onclick="event.stopPropagation(); handleAnyWordClick('${safeSpoken}', ${sentIdx}, ${wIdx})">${rawWord}</span>`;
     }
 
     const slashHtml = (isReviewMode && chunkEndSet.has(wIdx))
