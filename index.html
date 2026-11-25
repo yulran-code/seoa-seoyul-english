@@ -1093,6 +1093,7 @@ let currentStoryIdx = 0;
 let progressData = JSON.parse(localStorage.getItem('backup_progress') || '{}');
 let rewardsList = [];
 let redemptionsList = [];
+let sheetDictionaryMap = {};  
 
 let showAllKo = false;
 let showAllVocabMean = false;
@@ -1267,6 +1268,15 @@ function applyPayloadToState(data) {
   allStories = data.stories || [];
   rewardsList = data.rewards || [];
   redemptionsList = data.redemptions || [];
+  if (Array.isArray(data.dictionary)) {
+    const nextDict = {};
+    data.dictionary.forEach(item => {
+      if (item && item.word && item.meaning) {
+        nextDict[String(item.word).trim().toLowerCase()] = String(item.meaning).trim();
+      }
+    });
+    sheetDictionaryMap = nextDict;
+  }
   if (data.progress) {
     progressData = data.progress;
     localStorage.setItem('backup_progress', JSON.stringify(progressData));
@@ -1891,75 +1901,178 @@ function getSentenceChunks(sentenceObj) {
   return chunks;
 }
 
+// 불규칙 동사 변형 -> 기본형(원형) 매핑
+const IRREGULAR_VERB_MAP = {
+  "went": "go", "gone": "go", "goes": "go",
+  "came": "come", "comes": "come",
+  "saw": "see", "seen": "see", "sees": "see",
+  "took": "take", "taken": "take", "takes": "take",
+  "gave": "give", "given": "give", "gives": "give",
+  "got": "get", "gotten": "get", "gets": "get",
+  "made": "make", "makes": "make",
+  "found": "find", "finds": "find",
+  "knew": "know", "known": "know", "knows": "know",
+  "thought": "think", "thinks": "think",
+  "said": "say", "says": "say",
+  "told": "tell", "tells": "tell",
+  "ran": "run", "runs": "run",
+  "felt": "feel", "feels": "feel",
+  "heard": "hear", "hears": "hear",
+  "left": "leave", "leaves": "leave",
+  "met": "meet", "meets": "meet",
+  "kept": "keep", "keeps": "keep",
+  "held": "hold", "holds": "hold",
+  "brought": "bring", "brings": "bring",
+  "began": "begin", "begun": "begin", "begins": "begin",
+  "stood": "stand", "stands": "stand",
+  "sat": "sit", "sits": "sit",
+  "read": "read", "reads": "read",
+  "wrote": "write", "written": "write", "writes": "write",
+  "spoke": "speak", "spoken": "speak", "speaks": "speak",
+  "broke": "break", "broken": "break", "breaks": "break",
+  "flew": "fly", "flown": "fly", "flies": "fly",
+  "threw": "throw", "thrown": "throw", "throws": "throw",
+  "lost": "lose", "loses": "lose",
+  "won": "win", "wins": "win",
+  "bought": "buy", "buys": "buy",
+  "stole": "steal", "stolen": "steal", "steals": "steal",
+  "hid": "hide", "hidden": "hide", "hides": "hide",
+  " woke": "wake", "woken": "wake", "wakes": "wake",
+  "was": "be", "were": "be", "been": "be", "am": "be", "is": "be", "are": "be"
+};
+
 // 초등 기초~일상 회화 내장 미니 사전 (외부 인터넷 없이 즉시 조회)
 const BUILTIN_MINI_DICT = {
-  "look": "보다, 바라보다", "looks": "보인다", "looked": "보았다",
-  "find": "찾다, 발견하다", "found": "찾았다, 발견했다",
-  "open": "열다, 열린", "opened": "열었다",
-  "close": "닫다, 가까운", "closed": "닫힌, 감은",
-  "run": "달리다, 뛰다", "ran": "달렸다, 뛰었다",
-  "jump": "점프하다, 뛰다", "jumps": "점프한다", "jumped": "점프했다",
-  "walk": "걷다, 산책하다", "walked": "걸었다",
-  "help": "돕다, 도움", "helps": "돕는다", "helped": "도왔다",
-  "try": "노력하다, 시도하다", "tries": "노력한다", "tried": "노력했다",
-  "want": "원하다", "wants": "원한다", "wanted": "원했다",
-  "need": "필요하다", "needed": "필요했다",
-  "know": "알다", "knew": "알았다",
-  "think": "생각하다", "thought": "생각했다",
-  "say": "말하다", "said": "말했다",
-  "ask": "묻다, 부탁하다", "asked": "물었다",
-  "answer": "대답, 대답하다",
-  "smile": "미소 짓다, 미소", "smiled": "미소 지었다",
-  "laugh": "웃다", "laughed": "웃었다",
-  "cry": "울다", "cried": "울었다",
-  "worried": "걱정하는, 불안한",
-  "happy": "행복한, 기쁜",
-  "sad": "슬픈",
-  "afraid": "무서워하는, 두려워하는",
-  "surprised": "놀란",
-  "tired": "피곤한",
-  "ready": "준비된",
-  "together": "함께",
-  "alone": "혼자",
-  "quickly": "빠르게",
-  "slowly": "천천히",
-  "carefully": "조심스럽게",
-  "finally": "마침내, 드디어",
-  "suddenly": "갑자기",
-  "again": "다시",
-  "because": "~때문에",
-  "before": "~전에",
-  "after": "~후에",
-  "around": "주위에, ~쯤",
-  "hard": "열심히, 어려운",
-  "kindly": "친절하게",
-  "fast": "빠르게, 빠른",
-  "high": "높이, 높은",
-  "quiet": "조용한",
-  "brightly": "환하게, 밝게"
+  // 동사 & 상태
+  "look": "보다, 바라보다", "find": "찾다, 발견하다", "open": "열다, 열린",
+  "close": "닫다, 가까운", "run": "달리다, 뛰다", "jump": "점프하다, 뛰다",
+  "walk": "걷다, 산책하다", "help": "돕다, 도움", "try": "노력하다, 시도하다",
+  "want": "원하다", "need": "필요하다", "know": "알다", "think": "생각하다",
+  "say": "말하다", "tell": "말하다, 알려주다", "ask": "묻다, 부탁하다",
+  "answer": "대답, 대답하다", "smile": "미소 짓다, 미소", "laugh": "웃다",
+  "cry": "울다", "feel": "느끼다, 기분", "hear": "듣다", "see": "보다",
+  "go": "가다", "come": "오다", "get": "얻다, 되다", "make": "만들다",
+  "take": "가져가다, 잡다", "give": "주다", "keep": "유지하다, 지키다",
+  "hold": "잡다, 들고 있다", "bring": "가져오다", "leave": "떠나다, 남기다",
+  "meet": "만나다", "begin": "시작하다", "start": "시작하다", "stop": "멈추다",
+  "finish": "끝내다, 마치다", "lose": "잃어버리다, 지다", "win": "이기다",
+  "buy": "사다", "hide": "숨다, 숨기다", "wake": "깨다, 일어나다",
+  "sit": "앉다", "stand": "서다", "read": "읽다", "write": "쓰다",
+  "speak": "말하다", "talk": "이야기하다", "listen": "듣다", "watch": "지켜보다, 시청하다",
+  "play": "놀다, 연주하다, 경기하다", "work": "일하다, 작동하다", "study": "공부하다",
+  "check": "확인하다, 점검하다", "remember": "기억하다", "forget": "잊어버리다",
+  "happen": "일어나다, 생기다", "wait": "기다리다", "hurry": "서두르다",
+  "push": "밀다", "pull": "당기다", "throw": "던지다", "catch": "잡다, 받아내다",
+  "hit": "치다, 맞히다", "drop": "떨어뜨리다", "pick": "고르다, 줍다",
+  "share": "나누다, 공유하다", "trust": "믿다, 신뢰", "promise": "약속하다, 약속",
+
+  // 감정 & 형용사
+  "happy": "행복한, 기쁜", "sad": "슬픈", "worried": "걱정하는, 불안한",
+  "afraid": "무서워하는, 두려워하는", "surprised": "놀란", "tired": "피곤한",
+  "angry": "화난", "excited": "신난, 들뜬", "nervous": "긴장되는, 떨리는",
+  "ready": "준비된", "safe": "안전한", "dangerous": "위험한",
+  "easy": "쉬운", "hard": "열심히, 어려운, 딱딱한", "difficult": "어려운",
+  "fast": "빠르게, 빠른", "slow": "느린", "slowly": "천천히", "quickly": "빠르게",
+  "high": "높이, 높은", "low": "낮은", "long": "긴, 오랫동안", "short": "짧은, 키가 작은",
+  "big": "큰", "small": "작은", "little": "작은, 조금", "heavy": "무거운", "light": "가벼운, 빛",
+  "quiet": "조용한", "loud": "시끄러운, 큰 소리의", "bright": "밝은, 환한", "brightly": "환하게",
+  "dark": "어두운", "clean": "깨끗한", "dirty": "더러운", "new": "새로운", "old": "오래된, 나이 든",
+  "kind": "친절한", "kindly": "친절하게", "careful": "조심스러운", "carefully": "조심스럽게",
+  "strong": "강한, 튼튼한", "weak": "약한", "brave": "용감한", "smart": "똑똑한",
+  "special": "특별한", "secret": "비밀, 비밀의", "real": "진짜의, 실제의", "true": "사실인, 참된",
+  "same": "같은", "different": "다른", "right": "맞는, 옳은, 오른쪽", "wrong": "틀린, 잘못된",
+  "empty": "빈, 비어 있는", "full": "가득 찬", "busy": "바쁜", "free": "자유로운, 한가한",
+
+  // 부사 & 연결어 & 전치사
+  "together": "함께", "alone": "혼자", "again": "다시", "already": "이미, 벌써",
+  "always": "항상", "never": "결코 ~않다", "sometimes": "가끔", "often": "자주",
+  "soon": "곧, 머지않아", "finally": "마침내, 드디어", "suddenly": "갑자기",
+  "maybe": "아마도", "perhaps": "아마", "really": "정말, 진짜로", "very": "매우, 아주",
+  "too": "너무, ~도 또한", "also": "~도 역시", "even": "~조차, 훨씬", "only": "오직, ~만",
+  "here": "여기", "there": "거기, 저기", "outside": "밖에, 바깥쪽", "inside": "안에, 안쪽",
+  "up": "위로", "down": "아래로", "away": "멀리, 떨어져", "back": "뒤로, 다시",
+  "because": "~때문에", "before": "~전에", "after": "~후에", "when": "~할 때",
+  "while": "~하는 동안", "if": "만약 ~라면", "until": "~할 때까지", "around": "주위에, ~쯤",
+
+  // 명사 (학교·일상·사물)
+  "friend": "친구", "family": "가족", "parent": "부모", "teacher": "선생님", "student": "학생",
+  "school": "학교", "class": "수업, 반", "room": "방", "door": "문", "window": "창문",
+  "table": "탁자, 표", "chair": "의자", "desk": "책상", "bed": "침대", "floor": "바닥, 층",
+  "book": "책", "page": "쪽, 페이지", "word": "단어, 말", "story": "이야기", "note": "메모, 쪽지",
+  "letter": "편지, 글자", "paper": "종이", "pen": "펜", "pencil": "연필", "bag": "가방",
+  "box": "상자", "key": "열쇠", "lock": "자물쇠", "map": "지도", "picture": "그림, 사진",
+  "sound": "소리", "voice": "목소리", "light": "빛, 불빛", "shadow": "그림자",
+  "time": "시간, 때", "day": "날, 낮", "morning": "아침", "afternoon": "오후", "evening": "저녁", "night": "밤",
+  "today": "오늘", "tomorrow": "내일", "yesterday": "어제", "week": "주", "year": "해, 년",
+  "place": "장소, 곳", "way": "길, 방법", "thing": "것, 물건", "problem": "문제", "idea": "생각, 아이디어",
+  "plan": "계획", "dream": "꿈", "hope": "희망, 바라다", "wish": "소원, 바라다", "help": "도움, 돕다",
+  "water": "물", "food": "음식", "tree": "나무", "flower": "꽃", "garden": "정원",
+  "street": "거리, 길", "town": "마을, 도시", "city": "도시", "country": "나라, 시골", "world": "세상, 세계",
+  "hand": "손", "eye": "눈", "ear": "귀", "head": "머리", "face": "얼굴", "heart": "마음, 심장", "mind": "마음, 생각"
 };
 
 function getStemCandidates(word) {
-  const w = String(word || '').toLowerCase().replace(/[^a-z']/g, '');
+  const w = String(word || '').toLowerCase().replace(/[^a-z']/g, '').trim();
   if (!w) return [];
-  const candidates = [w];
-  if (w.endsWith('ies') && w.length > 3) candidates.push(w.slice(0, -3) + 'y');
-  if (w.endsWith('ied') && w.length > 3) candidates.push(w.slice(0, -3) + 'y');
+  const candidates = new Set([w]);
+
+  // 불규칙 동사 원형 추가
+  if (IRREGULAR_VERB_MAP[w]) {
+    candidates.add(IRREGULAR_VERB_MAP[w]);
+  }
+
+  // 규칙 어미 변형 후보 추가
+  if (w.endsWith('ies') && w.length > 3) {
+    const baseY = w.slice(0, -3) + 'y';
+    candidates.add(baseY);
+    if (IRREGULAR_VERB_MAP[baseY]) candidates.add(IRREGULAR_VERB_MAP[baseY]);
+  }
+  if (w.endsWith('ied') && w.length > 3) {
+    const baseY = w.slice(0, -3) + 'y';
+    candidates.add(baseY);
+    if (IRREGULAR_VERB_MAP[baseY]) candidates.add(IRREGULAR_VERB_MAP[baseY]);
+  }
   if (w.endsWith('ing') && w.length > 4) {
-    candidates.push(w.slice(0, -3));
-    candidates.push(w.slice(0, -3) + 'e');
+    const stem = w.slice(0, -3);
+    const stemE = stem + 'e';
+    candidates.add(stem);
+    candidates.add(stemE);
+    // 이중자음(running -> run, sitting -> sit) 처리
+    if (stem.length >= 2 && stem[stem.length - 1] === stem[stem.length - 2]) {
+      candidates.add(stem.slice(0, -1));
+    }
+    if (IRREGULAR_VERB_MAP[stem]) candidates.add(IRREGULAR_VERB_MAP[stem]);
+    if (IRREGULAR_VERB_MAP[stemE]) candidates.add(IRREGULAR_VERB_MAP[stemE]);
   }
   if (w.endsWith('ed') && w.length > 3) {
-    candidates.push(w.slice(0, -2));
-    candidates.push(w.slice(0, -1));
+    const stem2 = w.slice(0, -2);
+    const stem1 = w.slice(0, -1);
+    candidates.add(stem2);
+    candidates.add(stem1);
+    if (stem2.length >= 2 && stem2[stem2.length - 1] === stem2[stem2.length - 2]) {
+      candidates.add(stem2.slice(0, -1));
+    }
+    if (IRREGULAR_VERB_MAP[stem2]) candidates.add(IRREGULAR_VERB_MAP[stem2]);
+    if (IRREGULAR_VERB_MAP[stem1]) candidates.add(IRREGULAR_VERB_MAP[stem1]);
   }
-  if (w.endsWith('es') && w.length > 3) candidates.push(w.slice(0, -2));
-  if (w.endsWith('s') && w.length > 2) candidates.push(w.slice(0, -1));
-  return [...new Set(candidates)];
+  if (w.endsWith('es') && w.length > 3) {
+    const stem2 = w.slice(0, -2);
+    candidates.add(stem2);
+    if (IRREGULAR_VERB_MAP[stem2]) candidates.add(IRREGULAR_VERB_MAP[stem2]);
+  }
+  if (w.endsWith('s') && w.length > 2) {
+    const stem1 = w.slice(0, -1);
+    candidates.add(stem1);
+    if (IRREGULAR_VERB_MAP[stem1]) candidates.add(IRREGULAR_VERB_MAP[stem1]);
+  }
+
+  return Array.from(candidates);
 }
 
 function lookupWordMeaning(word, vocabObj) {
   const candidates = getStemCandidates(word);
+
+  // 1순위: 현재 회차 핵심 어휘(vocab)
   if (vocabObj) {
     const entries = Object.entries(vocabObj);
     for (const cand of candidates) {
@@ -1967,9 +2080,19 @@ function lookupWordMeaning(word, vocabObj) {
       if (hit) return hit[1];
     }
   }
+
+  // 2순위: 구글 시트 VocabDictionary 탭
+  if (typeof sheetDictionaryMap !== 'undefined' && sheetDictionaryMap) {
+    for (const cand of candidates) {
+      if (sheetDictionaryMap[cand]) return sheetDictionaryMap[cand];
+    }
+  }
+
+  // 3순위: 앱 내장 미니 사전
   for (const cand of candidates) {
     if (BUILTIN_MINI_DICT[cand]) return BUILTIN_MINI_DICT[cand];
   }
+
   return '';
 }
 
@@ -1994,7 +2117,6 @@ function formatSentenceHtml(sentenceObj, vocabObj, sentIdx) {
   const chunks = getSentenceChunks(sentenceObj);
   const chunkEndSet = new Set(chunks.slice(0, -1).map(c => c.end));
 
-  // 1. 구동사(2~4단어) 및 시제 변형 핵심어까지 인덱스별로 매칭 맵 생성
   const wordMeanMap = {};
   for (let i = 0; i < rawWords.length; i++) {
     if (wordMeanMap[i]) continue;
@@ -2025,7 +2147,6 @@ function formatSentenceHtml(sentenceObj, vocabObj, sentIdx) {
     }
   }
 
-  // 2. HTML 조립
   return rawWords.map((rawWord, wIdx) => {
     const cleanAlpha = rawWord.replace(/[^a-zA-Z']/g, '');
     const baseName = cleanAlpha.replace(/'s$/i, '');
